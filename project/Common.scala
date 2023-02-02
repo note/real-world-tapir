@@ -10,8 +10,11 @@ object Common {
       organization := "pl.msitko",
       version := versionArg,
 
-      scalaVersion := "3.2.1",
+      scalaVersion := "3.2.2",
       scalafmtOnCompile := true,
+
+      // TODO: otherwise getting "method schemaForCaseClass is declared as `inline`, but was not inlined"
+      scalacOptions ++= Seq("-Xmax-inlines", "64", "-Wunused:all"),
 
       commonSmlBuildSettings,
       testFrameworks += new TestFramework("munit.Framework")
