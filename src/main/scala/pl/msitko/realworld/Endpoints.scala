@@ -11,21 +11,49 @@ import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 
+object ExampleResponses:
+  val user: Endpoints.User = Endpoints.User(
+    email = "a@example.com",
+    token = "abc",
+    username = "user",
+    bio = "bio",
+    image = None
+  )
+  val userBody: Endpoints.UserBody = user.body
+
 object Endpoints:
-  case class User(name: String) extends AnyVal
-  val helloEndpoint: PublicEndpoint[User, Unit, String, Any] = endpoint.get
-    .in("hello")
-    .in(query[User]("name"))
-    .out(stringBody)
-  val helloServerEndpoint: ServerEndpoint[Any, IO] =
-    helloEndpoint.serverLogicSuccess(user => IO.pure(s"Hello ${user.name}"))
 
-  val booksListing: PublicEndpoint[Unit, Unit, List[Book], Any] = endpoint.get
-    .in("books" / "list" / "all")
-    .out(jsonBody[List[Book]])
-  val booksListingServerEndpoint: ServerEndpoint[Any, IO] = booksListing.serverLogicSuccess(_ => IO.pure(Library.books))
+  final case class AuthenticationReqBodyUser(email: String, password: String)
+  final case class AuthenticationReqBody(user: AuthenticationReqBodyUser)
 
-  val apiEndpoints: List[ServerEndpoint[Any, IO]] = List(helloServerEndpoint, booksListingServerEndpoint)
+  final case class User(
+      email: String,
+      token: String,
+      username: String,
+      bio: String,
+      image: Option[String],
+  ):
+    def body: UserBody = UserBody(user = this)
+
+  final case class UserBody(user: User)
+  val authentication = endpoint.post
+    .in("api" / "users" / "login")
+    .in(jsonBody[AuthenticationReqBody])
+    .out(jsonBody[UserBody])
+  val authenticationImpl: ServerEndpoint[Any, IO] =
+    authentication.serverLogicSuccess(_ => IO.pure(ExampleResponses.userBody))
+
+  final case class RegistrationUserBody(username: String, email: String, password: String)
+  final case class RegistrationReqBody(user: RegistrationUserBody)
+
+  val registration = endpoint.post
+    .in("api" / "users")
+    .in(jsonBody[RegistrationReqBody])
+    .out(jsonBody[UserBody])
+  val registrationImpl: ServerEndpoint[Any, IO] =
+    registration.serverLogicSuccess(_ => IO.pure(ExampleResponses.userBody))
+
+  val apiEndpoints: List[ServerEndpoint[Any, IO]] = List(authenticationImpl, registrationImpl)
 
   val docEndpoints: List[ServerEndpoint[Any, IO]] = SwaggerInterpreter()
     .fromServerEndpoints[IO](apiEndpoints, "stiff-halibut", "1.0.0")
