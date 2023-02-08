@@ -1,46 +1,44 @@
 package pl.msitko.realworld
 
 import cats.effect.{ExitCode, IO, IOApp}
+import doobie.Transactor
+import doobie.util.transactor.Transactor
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.output.MigrateResult
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
+import pl.msitko.realworld.services.Services
 import pureconfig.ConfigSource
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
-
-object DBMigration {
-  def migrate(url: String, user: String, password: String): IO[MigrateResult] =
-    IO {
-      Flyway
-        .configure()
-        .dataSource(url, user, password)
-        .load()
-        .migrate()
-    }
-}
 
 object Main extends IOApp:
 
   override def run(args: List[String]): IO[ExitCode] =
-    val routes =
+    def routes(services: Services) =
       val serverOptions: Http4sServerOptions[IO] =
         Http4sServerOptions
           .customiseInterceptors[IO]
           .metricsInterceptor(Services.prometheusMetrics.metricsInterceptor())
           .options
-      Http4sServerInterpreter[IO](serverOptions).toRoutes(Services.all)
+
+      Http4sServerInterpreter[IO](serverOptions).toRoutes(services.all)
 
     for {
       appConfig <- AppConfig.loadConfig
       dbConfig = appConfig.db
-      _ <- DBMigration.migrate(
-        s"jdbc:postgresql://${dbConfig.host}:${dbConfig.port}/${dbConfig.dbName}",
+      jdbcURL  = s"jdbc:postgresql://${dbConfig.host}:${dbConfig.port}/${dbConfig.dbName}"
+      _ <- DBMigration.migrate(jdbcURL, dbConfig.username, dbConfig.password)
+      transactor: Transactor[IO] = Transactor.fromDriverManager[IO](
+        "org.postgresql.Driver",
+        jdbcURL,
         dbConfig.username,
-        dbConfig.password)
+        dbConfig.password
+      )
+      services = Services(transactor)
       exitCode <- BlazeServerBuilder[IO]
         .bindHttp(appConfig.server.port, appConfig.server.host)
-        .withHttpApp(Router("/" -> routes).orNotFound)
+        .withHttpApp(Router("/" -> routes(services)).orNotFound)
         .resource
         .use { server =>
           for {

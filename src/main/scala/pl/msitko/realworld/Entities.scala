@@ -29,7 +29,7 @@ object Entities:
 
   final case class UserBody(user: User)
 
-  final case class RegistrationUserBody(username: String, email: String, password: String)
+  final case class RegistrationUserBody(username: String, email: String, password: String, bio: Option[String])
 
   final case class RegistrationReqBody(user: RegistrationUserBody)
 

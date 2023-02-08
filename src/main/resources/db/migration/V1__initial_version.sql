@@ -6,7 +6,7 @@ CREATE TABLE users (
     email    VARCHAR NOT NULL UNIQUE,
     token    VARCHAR NOT NULL,
     username VARCHAR NOT NULL UNIQUE,
-    bio      TEXT    NOT NULL,
+    bio      TEXT,
 --     TODO: image
     PRIMARY KEY(id)
 );
