@@ -9,7 +9,7 @@ object ExampleResponses:
     email = "a@example.com",
     token = "abc",
     username = "user",
-    bio = "bio",
+    bio = None,
     image = None
   )
   val userBody: Entities.UserBody = user.body

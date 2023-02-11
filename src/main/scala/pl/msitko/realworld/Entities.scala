@@ -11,7 +11,7 @@ object Entities:
       email: String,
       token: String,
       username: String,
-      bio: String,
+      bio: Option[String],
       image: Option[String],
   ):
     def body: UserBody = UserBody(user = this)

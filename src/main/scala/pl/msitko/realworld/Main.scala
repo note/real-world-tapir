@@ -35,7 +35,7 @@ object Main extends IOApp:
         dbConfig.username,
         dbConfig.password
       )
-      services = Services(transactor)
+      services = Services(transactor, appConfig)
       exitCode <- BlazeServerBuilder[IO]
         .bindHttp(appConfig.server.port, appConfig.server.host)
         .withHttpApp(Router("/" -> routes(services)).orNotFound)

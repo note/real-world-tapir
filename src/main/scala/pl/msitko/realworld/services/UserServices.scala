@@ -4,7 +4,8 @@ import cats.effect.IO
 import doobie.*
 import doobie.implicits.*
 import pl.msitko.realworld.Entities.UserBody
-import pl.msitko.realworld.ExampleResponses
+import pl.msitko.realworld.{Entities, ExampleResponses, JWT, JwtConfig}
+import pl.msitko.realworld.db.{UserNoId, UserRepo}
 import pl.msitko.realworld.endpoints.UserEndpoints
 import sttp.tapir.server.ServerEndpoint
 
@@ -12,26 +13,24 @@ import java.security.SecureRandom
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
-class UserServices(transactor: Transactor[IO]):
+class UserServices(repo: UserRepo, jwtConfig: JwtConfig):
   val authenticationImpl =
     UserEndpoints.authentication.serverLogicSuccess(_ => IO.pure(ExampleResponses.userBody))
 
   val registrationImpl =
     UserEndpoints.registration.serverLogicSuccess { reqBody =>
-      val user = reqBody.user
-      // TODO: hash password
-
-      val salt = Array.fill[Byte](16)(0)
-      new SecureRandom().nextBytes(salt)
-      val spec            = new PBEKeySpec(user.password.toCharArray, salt, 65536, 128)
-      val factory         = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1")
-      val encodedPassword = factory.generateSecret(spec).getEncoded
-
-      val q: doobie.ConnectionIO[UserBody] =
-        sql"INSERT INTO public.users (email, password, username, bio) VALUES (${user.email}, $encodedPassword, ${user.username}, ${user.bio})".update
-          .withUniqueGeneratedKeys[UserBody]("id", "email", "password", "username", "bio")
-
-      q.transact(transactor)
+      val user            = reqBody.user
+      val encodedPassword = hashPassword(user.password.toCharArray)
+      for {
+        inserted <- repo.insert(UserNoId(email = user.email, username = user.username, bio = user.bio), encodedPassword)
+        httpUser = UserBody(user = Entities.User(
+          email = inserted.email,
+          token = JWT.generateJwtToken(inserted.id, jwtConfig),
+          username = inserted.username,
+          bio = inserted.bio,
+          image = None,
+        ))
+      } yield httpUser
     }
 
   val getCurrentUserImpl =
@@ -46,3 +45,10 @@ class UserServices(transactor: Transactor[IO]):
     getCurrentUserImpl,
     updateUserImpl,
   )
+
+  private def hashPassword(in: Array[Char]): Array[Byte] =
+    val salt = Array.fill[Byte](16)(0)
+    new SecureRandom().nextBytes(salt)
+    val spec    = new PBEKeySpec(in, salt, 65536, 128)
+    val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1")
+    factory.generateSecret(spec).getEncoded

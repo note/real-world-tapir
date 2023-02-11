@@ -12,6 +12,7 @@ object Dependencies {
 		"org.http4s"                  %% "http4s-blaze-server"      % "0.23.13",
   	)
 	val compileDeps = tapir ++ Seq(
+		"com.github.jwt-scala" 				%% "jwt-circe" 										% "9.1.2",
 		"com.github.pureconfig" 			%% "pureconfig-core" 							% "0.17.2",
 		"org.flywaydb" 								%  "flyway-core" 									% "9.14.1",
 		"org.tpolecat" 								%% "doobie-core" 									% "1.0.0-RC2",

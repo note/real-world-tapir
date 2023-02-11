@@ -3,10 +3,12 @@ package pl.msitko.realworld
 import cats.effect.IO
 import pureconfig.*
 import pureconfig.generic.derivation.default.*
+import scala.concurrent.duration.FiniteDuration
 
 final case class AppConfig(
     server: ServerConfig,
     db: DatabaseConfig,
+    jwt: JwtConfig,
 ) derives ConfigReader
 
 object AppConfig:
@@ -24,4 +26,9 @@ final case class DatabaseConfig(
     dbName: String,
     username: String,
     password: String,
+) derives ConfigReader
+
+final case class JwtConfig(
+    secret: String,
+    expiration: FiniteDuration
 ) derives ConfigReader
