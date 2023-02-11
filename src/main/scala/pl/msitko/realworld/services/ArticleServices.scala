@@ -14,6 +14,7 @@ import java.util.UUID
 
 class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
   val articleEndpoints = new ArticleEndpoints(jwtConfig)
+
   val listArticlesImpl =
     articleEndpoints.listArticles.serverLogicSuccess(_ => IO.pure(Entities.Articles(articles = List.empty)))
 
@@ -40,7 +41,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
         articleOption <- repo.getBySlug(slug)
         res <- articleOption match
           case Some(existingArticle) if existingArticle.authorId == userId =>
-            val changeObj = reqBody.toDB(reqBody.article.body.map(generateSlug), existingArticle)
+            val changeObj = reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle)
             // This getArticleById is a bit lazy, we could avoid another DB query by composing existing and changeObj
             repo.update(changeObj, existingArticle.id).flatMap(_ => getArticleById(existingArticle.id))
           case Some(_) =>
