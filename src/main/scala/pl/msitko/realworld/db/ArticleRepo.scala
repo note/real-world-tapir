@@ -46,7 +46,7 @@ class ArticleRepo(transactor: Transactor[IO]):
       .transact(transactor)
 
   def getArticle(slug: String): IO[Option[Article]] =
-    sql"SELECT id, author_id, slug, title, description, body, created_at, updated_at FROM public.articles WHERE slug=$slug"
+    sql"SELECT id, slug, title, description, body, created_at, updated_at, author_id FROM public.articles WHERE slug=$slug"
       .query[Article]
       .option
       .transact(transactor)

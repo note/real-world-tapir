@@ -33,6 +33,7 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
     .in("api" / "articles")
     .in(path[String])
     .out(jsonBody[ArticleBody])
+    .errorOut(statusCode(StatusCode.NotFound))
 
   val createArticle =
     secureEndpoint.post
