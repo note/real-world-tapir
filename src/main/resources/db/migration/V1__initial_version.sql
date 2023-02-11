@@ -1,10 +1,11 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE users (
     -- For synthetic IDs (i.e. ones not appearing in REST API), we use UUID
     id       uuid    NOT NULL DEFAULT uuid_generate_v4(),
     email    VARCHAR NOT NULL UNIQUE,
-    password BYTEA   NOT NULL,
+    password TEXT    NOT NULL,
     username VARCHAR NOT NULL UNIQUE,
     bio      TEXT,
 --     TODO: image

@@ -1,35 +1,41 @@
 package pl.msitko.realworld.services
 
 import cats.effect.IO
+import com.typesafe.scalalogging.StrictLogging
 import doobie.*
 import doobie.implicits.*
 import pl.msitko.realworld.Entities.UserBody
 import pl.msitko.realworld.{Entities, ExampleResponses, JWT, JwtConfig}
 import pl.msitko.realworld.db.{UserNoId, UserRepo}
 import pl.msitko.realworld.endpoints.UserEndpoints
+import sttp.model.StatusCode
 import sttp.tapir.server.ServerEndpoint
 
 import java.security.SecureRandom
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
-class UserServices(repo: UserRepo, jwtConfig: JwtConfig):
+class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   val authenticationImpl =
-    UserEndpoints.authentication.serverLogicSuccess(_ => IO.pure(ExampleResponses.userBody))
+    UserEndpoints.authentication.serverLogic { reqBody =>
+      val encodedPassword = reqBody.user.password
+      for {
+        authenticated <- repo.authenticate(reqBody.user.email, encodedPassword)
+        response = authenticated match
+          case Some(user) =>
+            Right(UserBody.fromDB(user, JWT.generateJwtToken(user.id, jwtConfig)))
+          case None =>
+            Left(StatusCode.Forbidden)
+      } yield response
+    }
 
   val registrationImpl =
     UserEndpoints.registration.serverLogicSuccess { reqBody =>
       val user            = reqBody.user
-      val encodedPassword = hashPassword(user.password.toCharArray)
+      val encodedPassword = reqBody.user.password
       for {
         inserted <- repo.insert(UserNoId(email = user.email, username = user.username, bio = user.bio), encodedPassword)
-        httpUser = UserBody(user = Entities.User(
-          email = inserted.email,
-          token = JWT.generateJwtToken(inserted.id, jwtConfig),
-          username = inserted.username,
-          bio = inserted.bio,
-          image = None,
-        ))
+        httpUser = UserBody.fromDB(inserted, JWT.generateJwtToken(inserted.id, jwtConfig))
       } yield httpUser
     }
 
@@ -45,10 +51,3 @@ class UserServices(repo: UserRepo, jwtConfig: JwtConfig):
     getCurrentUserImpl,
     updateUserImpl,
   )
-
-  private def hashPassword(in: Array[Char]): Array[Byte] =
-    val salt = Array.fill[Byte](16)(0)
-    new SecureRandom().nextBytes(salt)
-    val spec    = new PBEKeySpec(in, salt, 65536, 128)
-    val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1")
-    factory.generateSecret(spec).getEncoded

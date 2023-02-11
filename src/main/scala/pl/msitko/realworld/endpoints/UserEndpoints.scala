@@ -14,6 +14,7 @@ object UserEndpoints:
     .in(jsonBody[AuthenticationReqBody])
     .out(jsonBody[UserBody])
     .out(statusCode(StatusCode.Created))
+    .errorOut(statusCode)
 
   val registration = endpoint.post
     .in("api" / "users")

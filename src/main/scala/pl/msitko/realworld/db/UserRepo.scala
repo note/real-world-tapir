@@ -20,9 +20,15 @@ final case class User(
 )
 
 class UserRepo(transactor: Transactor[IO]):
-  def insert(user: UserNoId, encodedPassword: Array[Byte]): IO[User] =
+  def insert(user: UserNoId, password: String): IO[User] =
     val q: doobie.ConnectionIO[User] =
-      sql"INSERT INTO public.users (email, password, username, bio) VALUES (${user.email}, $encodedPassword, ${user.username}, ${user.bio})".update
+      sql"INSERT INTO public.users (email, password, username, bio) VALUES (${user.email}, crypt($password, gen_salt('bf', 11)), ${user.username}, ${user.bio})".update
         .withUniqueGeneratedKeys[User]("id", "email", "username", "bio")
 
     q.transact(transactor)
+
+  def authenticate(email: String, password: String): IO[Option[User]] =
+    sql"SELECT id, email, username, bio FROM public.users WHERE email=$email AND password=crypt($password, password)"
+      .query[User]
+      .option
+      .transact(transactor)

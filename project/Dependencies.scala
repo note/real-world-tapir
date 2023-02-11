@@ -14,6 +14,7 @@ object Dependencies {
 	val compileDeps = tapir ++ Seq(
 		"com.github.jwt-scala" 				%% "jwt-circe" 										% "9.1.2",
 		"com.github.pureconfig" 			%% "pureconfig-core" 							% "0.17.2",
+		"com.typesafe.scala-logging" 	%% "scala-logging" 								% "3.9.4",
 		"org.flywaydb" 								%  "flyway-core" 									% "9.14.1",
 		"org.tpolecat" 								%% "doobie-core" 									% "1.0.0-RC2",
 		"org.tpolecat" 								%% "doobie-hikari" 								% "1.0.0-RC2",

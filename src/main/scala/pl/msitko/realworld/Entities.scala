@@ -28,6 +28,15 @@ object Entities:
   final case class Comments(comments: List[Comment])
 
   final case class UserBody(user: User)
+  object UserBody:
+    def fromDB(dbUser: db.User, jwtToken: String): UserBody =
+      UserBody(user = Entities.User(
+        email = dbUser.email,
+        token = jwtToken,
+        username = dbUser.username,
+        bio = dbUser.bio,
+        image = None,
+      ))
 
   final case class RegistrationUserBody(username: String, email: String, password: String, bio: Option[String])
 
