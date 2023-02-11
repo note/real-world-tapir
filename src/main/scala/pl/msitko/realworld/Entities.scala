@@ -59,7 +59,14 @@ object Entities:
 
   final case class UpdateArticleReq(title: Option[String], description: Option[String], body: Option[String])
 
-  final case class UpdateArticleReqBody(article: UpdateArticleReq)
+  final case class UpdateArticleReqBody(article: UpdateArticleReq):
+    def toDB(slug: Option[String], existingArtile: db.Article): db.UpdateArticle =
+      db.UpdateArticle(
+        slug = slug.getOrElse(existingArtile.slug),
+        title = article.title.getOrElse(existingArtile.title),
+        description = article.description.getOrElse(existingArtile.description),
+        body = article.body.getOrElse(existingArtile.body),
+      )
 
   final case class Tags(tags: List[String])
 

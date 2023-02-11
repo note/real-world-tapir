@@ -2,6 +2,7 @@ package pl.msitko.realworld.services
 
 import cats.effect.IO
 import pl.msitko.realworld.Entities.ArticleBody
+import pl.msitko.realworld.db
 import pl.msitko.realworld.db.ArticleRepo
 import pl.msitko.realworld.{Entities, ExampleResponses, JwtConfig}
 import pl.msitko.realworld.endpoints.{ArticleEndpoints, ErrorInfo}
@@ -9,6 +10,7 @@ import pl.msitko.realworld.endpoints.{ArticleEndpoints, ErrorInfo}
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Instant
+import java.util.UUID
 
 class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
   val articleEndpoints = new ArticleEndpoints(jwtConfig)
@@ -33,7 +35,26 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
     }
 
   val updateArticleImpl =
-    articleEndpoints.updateArticle.serverLogicSuccess(_ => IO.pure(ExampleResponses.articleBody))
+    articleEndpoints.updateArticle.serverLogic { userId => (slug, reqBody) =>
+      for {
+        articleOption <- repo.getBySlug(slug)
+        res <- articleOption match
+          case Some(existingArticle) if existingArticle.authorId == userId =>
+            val changeObj = reqBody.toDB(reqBody.article.body.map(generateSlug), existingArticle)
+            // This getArticleById is a bit lazy, we could avoid another DB query by composing existing and changeObj
+            repo.update(changeObj, existingArticle.id).flatMap(_ => getArticleById(existingArticle.id))
+          case Some(_) =>
+            IO.pure(Left(ErrorInfo.Unauthorized))
+          case None =>
+            IO.pure(Left(ErrorInfo.NotFound))
+      } yield res
+    }
+
+  private def getArticleById(id: UUID): IO[Either[ErrorInfo, ArticleBody]] =
+    repo.getById(id).map {
+      case Some(article) => Right(ArticleBody.fromDB(article))
+      case None          => Left(ErrorInfo.NotFound)
+    }
 
   val deleteArticleImpl =
     articleEndpoints.deleteArticle.serverLogic { userId => slug =>

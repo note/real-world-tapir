@@ -42,8 +42,9 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
       .out(jsonBody[ArticleBody])
       .out(statusCode(StatusCode.Created))
 
-  val updateArticle = endpoint.put
+  val updateArticle = secureEndpoint.put
     .in("api" / "articles")
+    .in(path[String])
     .in(jsonBody[UpdateArticleReqBody])
     .out(jsonBody[ArticleBody])
 

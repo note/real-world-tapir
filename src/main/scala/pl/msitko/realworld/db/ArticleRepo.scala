@@ -29,6 +29,13 @@ final case class Article(
     authorId: UUID,
 )
 
+final case class UpdateArticle(
+    slug: String,
+    title: String,
+    description: String,
+    body: String,
+)
+
 class ArticleRepo(transactor: Transactor[IO]):
 
   def insert(article: ArticleNoId, authorId: UUID): IO[Article] =
@@ -45,8 +52,24 @@ class ArticleRepo(transactor: Transactor[IO]):
         "author_id")
       .transact(transactor)
 
+  def update(ch: UpdateArticle, articleId: UUID): IO[Int] =
+    sql"""UPDATE public.articles SET 
+         |slug = ${ch.slug},
+         |title = ${ch.title},
+         |description = ${ch.description},
+         |body = ${ch.body},
+         |updated_at = NOW()
+         |WHERE id=$articleId
+       """.stripMargin.update.run.transact(transactor)
+
   def getBySlug(slug: String): IO[Option[Article]] =
     sql"SELECT id, slug, title, description, body, created_at, updated_at, author_id FROM public.articles WHERE slug=$slug"
+      .query[Article]
+      .option
+      .transact(transactor)
+
+  def getById(id: UUID): IO[Option[Article]] =
+    sql"SELECT id, slug, title, description, body, created_at, updated_at, author_id FROM public.articles WHERE id=$id"
       .query[Article]
       .option
       .transact(transactor)
