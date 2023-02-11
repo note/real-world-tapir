@@ -11,12 +11,19 @@ import java.time.Instant
 import java.util.UUID
 import scala.util.Success
 
+// TODO: move somewhere else:
+sealed trait ErrorInfo
+object ErrorInfo:
+  case object NotFound        extends ErrorInfo
+  case object Unauthorized    extends ErrorInfo
+  case object Unauthenticated extends ErrorInfo
+
 class SecuredEndpoints(jwtConfig: JwtConfig):
-  def authLogic(token: String): IO[Either[String, UUID]] =
+  def authLogic(token: String): IO[Either[ErrorInfo, UUID]] =
     IO.pure {
       JWT.decodeJwtToken(token, jwtConfig) match
         case Success((userId, expirationDate)) if Instant.now().isBefore(expirationDate) => Right(userId)
-        case _                                                                           => Left("TODO")
+        case _ => Left(ErrorInfo.Unauthenticated)
     }
 
   private val msg =
@@ -35,6 +42,10 @@ class SecuredEndpoints(jwtConfig: JwtConfig):
                 ValidationResult.Invalid(msg),
             msg.some))(s => s.stripPrefix(expectedPrefix))((token: String) => s"Token $token")
     )
-    .errorOut(plainBody[String])
-    .errorOut(statusCode(StatusCode.Unauthorized))
+    .errorOut(
+      oneOf[ErrorInfo](
+        oneOfVariant(statusCode(StatusCode.NotFound).and(emptyOutputAs(ErrorInfo.NotFound))),
+        oneOfVariant(statusCode(StatusCode.Forbidden).and(emptyOutputAs(ErrorInfo.Unauthorized))),
+        oneOfVariant(statusCode(StatusCode.Unauthorized).and(emptyOutputAs(ErrorInfo.Unauthenticated))),
+      ))
     .serverSecurityLogic(authLogic)

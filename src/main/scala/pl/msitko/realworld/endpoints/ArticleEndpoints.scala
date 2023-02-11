@@ -47,7 +47,7 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
     .in(jsonBody[UpdateArticleReqBody])
     .out(jsonBody[ArticleBody])
 
-  val deleteArticle = endpoint.delete
+  val deleteArticle = secureEndpoint.delete
     .in("api" / "articles")
     .in(path[String])
     .out(jsonBody[Unit])

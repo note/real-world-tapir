@@ -4,7 +4,7 @@ import cats.effect.IO
 import pl.msitko.realworld.Entities.ArticleBody
 import pl.msitko.realworld.db.ArticleRepo
 import pl.msitko.realworld.{Entities, ExampleResponses, JwtConfig}
-import pl.msitko.realworld.endpoints.ArticleEndpoints
+import pl.msitko.realworld.endpoints.{ArticleEndpoints, ErrorInfo}
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -21,7 +21,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
   val getArticleImpl =
     articleEndpoints.getArticle.serverLogicOption { slug =>
       for {
-        article <- repo.getArticle(slug)
+        article <- repo.getBySlug(slug)
         httpArticle = article.map(ArticleBody.fromDB)
       } yield httpArticle
     }
@@ -36,7 +36,18 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
     articleEndpoints.updateArticle.serverLogicSuccess(_ => IO.pure(ExampleResponses.articleBody))
 
   val deleteArticleImpl =
-    articleEndpoints.deleteArticle.serverLogicSuccess(_ => IO.pure(()))
+    articleEndpoints.deleteArticle.serverLogic { userId => slug =>
+      for {
+        articleOption <- repo.getBySlug(slug)
+        res <- articleOption match
+          case Some(a) if a.authorId == userId =>
+            repo.delete(slug).map(_ => Right(()))
+          case Some(_) =>
+            IO.pure(Left(ErrorInfo.Unauthorized))
+          case None =>
+            IO.pure(Left(ErrorInfo.NotFound))
+      } yield res
+    }
 
   val addCommentImpl =
     articleEndpoints.addComment.serverLogicSuccess(slug => IO.pure(ExampleResponses.commentBody))

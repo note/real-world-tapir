@@ -45,8 +45,11 @@ class ArticleRepo(transactor: Transactor[IO]):
         "author_id")
       .transact(transactor)
 
-  def getArticle(slug: String): IO[Option[Article]] =
+  def getBySlug(slug: String): IO[Option[Article]] =
     sql"SELECT id, slug, title, description, body, created_at, updated_at, author_id FROM public.articles WHERE slug=$slug"
       .query[Article]
       .option
       .transact(transactor)
+
+  def delete(slug: String): IO[Int] =
+    sql"DELETE FROM public.articles WHERE slug=$slug".update.run.transact(transactor)
