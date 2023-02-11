@@ -23,7 +23,7 @@ class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
         authenticated <- repo.authenticate(reqBody.user.email, encodedPassword)
         response = authenticated match
           case Some(user) =>
-            Right(UserBody.fromDB(user, JWT.generateJwtToken(user.id, jwtConfig)))
+            Right(UserBody.fromDB(user, JWT.generateJwtToken(user.id.toString, jwtConfig)))
           case None =>
             Left(StatusCode.Forbidden)
       } yield response
@@ -35,7 +35,7 @@ class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
       val encodedPassword = reqBody.user.password
       for {
         inserted <- repo.insert(UserNoId(email = user.email, username = user.username, bio = user.bio), encodedPassword)
-        httpUser = UserBody.fromDB(inserted, JWT.generateJwtToken(inserted.id, jwtConfig))
+        httpUser = UserBody.fromDB(inserted, JWT.generateJwtToken(inserted.id.toString, jwtConfig))
       } yield httpUser
     }
 

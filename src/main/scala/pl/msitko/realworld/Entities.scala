@@ -64,6 +64,20 @@ object Entities:
   final case class Tags(tags: List[String])
 
   final case class ArticleBody(article: Article)
+  object ArticleBody:
+    def fromDB(dbArticle: db.Article): ArticleBody =
+      ArticleBody(article = Entities.Article(
+        slug = dbArticle.slug,
+        title = dbArticle.title,
+        description = dbArticle.description,
+        body = dbArticle.body,
+        tagList = List.empty, // TODO: implement it
+        createdAt = dbArticle.createdAt,
+        updatedAt = dbArticle.updatedAt,
+        favorited = false,                       // TODO: implement it
+        favoritesCount = 0,                      // TODO: implement it
+        author = ExampleResponses.profile("abc") // TODO: implement it
+      ))
 
   final case class Article(
       slug: String,
@@ -81,7 +95,16 @@ object Entities:
 
   final case class CreateArticleReq(title: String, description: String, body: String, tagList: List[String])
 
-  final case class CreateArticleReqBody(article: CreateArticleReq)
+  final case class CreateArticleReqBody(article: CreateArticleReq):
+    def toDB(slug: String, now: Instant): db.ArticleNoId =
+      db.ArticleNoId(
+        slug = slug,
+        title = article.title,
+        description = article.description,
+        body = article.body,
+        createdAt = now,
+        updatedAt = now,
+      )
 
   // TODO: does is use circe?
   //  given instantEncoder: Encoder[Instant] = ???

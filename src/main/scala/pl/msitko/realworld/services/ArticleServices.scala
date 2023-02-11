@@ -1,43 +1,58 @@
 package pl.msitko.realworld.services
 
 import cats.effect.IO
-import pl.msitko.realworld.{Entities, ExampleResponses}
+import pl.msitko.realworld.Entities.ArticleBody
+import pl.msitko.realworld.db.ArticleRepo
+import pl.msitko.realworld.{Entities, ExampleResponses, JwtConfig}
 import pl.msitko.realworld.endpoints.ArticleEndpoints
 
-object ArticleServices:
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.time.Instant
+
+class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
+  val articleEndpoints = new ArticleEndpoints(jwtConfig)
   val listArticlesImpl =
-    ArticleEndpoints.listArticles.serverLogicSuccess(_ => IO.pure(Entities.Articles(articles = List.empty)))
+    articleEndpoints.listArticles.serverLogicSuccess(_ => IO.pure(Entities.Articles(articles = List.empty)))
 
   val feedArticlesImpl =
-    ArticleEndpoints.feedArticles.serverLogicSuccess(_ => IO.pure(Entities.Articles(articles = List.empty)))
+    articleEndpoints.feedArticles.serverLogicSuccess(_ => IO.pure(Entities.Articles(articles = List.empty)))
 
   val getArticleImpl =
-    ArticleEndpoints.getArticle.serverLogicSuccess(slug => IO.pure(ExampleResponses.articleBody))
+    articleEndpoints.getArticle.serverLogicOption { slug =>
+      for {
+        article <- repo.getArticle(slug)
+        httpArticle = article.map(ArticleBody.fromDB)
+      } yield httpArticle
+    }
 
   val createArticleImpl =
-    ArticleEndpoints.createArticle.serverLogicSuccess(_ => IO.pure(ExampleResponses.articleBody))
+    articleEndpoints.createArticle.serverLogicSuccess { userId => reqBody =>
+      val dbArticle = reqBody.toDB(generateSlug(reqBody.article.title), Instant.now())
+      repo.insert(dbArticle, userId).map(ArticleBody.fromDB)
+    }
 
   val updateArticleImpl =
-    ArticleEndpoints.updateArticle.serverLogicSuccess(_ => IO.pure(ExampleResponses.articleBody))
+    articleEndpoints.updateArticle.serverLogicSuccess(_ => IO.pure(ExampleResponses.articleBody))
 
   val deleteArticleImpl =
-    ArticleEndpoints.deleteArticle.serverLogicSuccess(_ => IO.pure(()))
+    articleEndpoints.deleteArticle.serverLogicSuccess(_ => IO.pure(()))
 
   val addCommentImpl =
-    ArticleEndpoints.addComment.serverLogicSuccess(slug => IO.pure(ExampleResponses.commentBody))
+    articleEndpoints.addComment.serverLogicSuccess(slug => IO.pure(ExampleResponses.commentBody))
 
   val getCommentsImpl =
-    ArticleEndpoints.getComments.serverLogicSuccess(slug =>
+    articleEndpoints.getComments.serverLogicSuccess(slug =>
       IO.pure(Entities.Comments(comments = List(ExampleResponses.comment))))
 
   val deleteCommentImpl =
-    ArticleEndpoints.deleteComment.serverLogicSuccess((slug, commentId) => IO.pure(()))
+    articleEndpoints.deleteComment.serverLogicSuccess((slug, commentId) => IO.pure(()))
 
   val favoriteArticleImpl =
-    ArticleEndpoints.favoriteArticle.serverLogicSuccess(slug => IO.pure(ExampleResponses.articleBody))
+    articleEndpoints.favoriteArticle.serverLogicSuccess(slug => IO.pure(ExampleResponses.articleBody))
 
   val unfavoriteArticleImpl =
-    ArticleEndpoints.unfavoriteArticle.serverLogicSuccess(slug => IO.pure(ExampleResponses.articleBody))
+    articleEndpoints.unfavoriteArticle.serverLogicSuccess(slug => IO.pure(ExampleResponses.articleBody))
 
   def services = List(
     listArticlesImpl,
@@ -52,3 +67,7 @@ object ArticleServices:
     favoriteArticleImpl,
     unfavoriteArticleImpl,
   )
+
+  // TODO: Replace with proper implementation
+  private def generateSlug(title: String): String =
+    URLEncoder.encode(title, StandardCharsets.UTF_8)
