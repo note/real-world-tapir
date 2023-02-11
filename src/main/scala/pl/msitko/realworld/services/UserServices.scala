@@ -8,6 +8,10 @@ import pl.msitko.realworld.ExampleResponses
 import pl.msitko.realworld.endpoints.UserEndpoints
 import sttp.tapir.server.ServerEndpoint
 
+import java.security.SecureRandom
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
+
 class UserServices(transactor: Transactor[IO]):
   val authenticationImpl =
     UserEndpoints.authentication.serverLogicSuccess(_ => IO.pure(ExampleResponses.userBody))
@@ -16,9 +20,16 @@ class UserServices(transactor: Transactor[IO]):
     UserEndpoints.registration.serverLogicSuccess { reqBody =>
       val user = reqBody.user
       // TODO: hash password
+
+      val salt = Array.fill[Byte](16)(0)
+      new SecureRandom().nextBytes(salt)
+      val spec            = new PBEKeySpec(user.password.toCharArray, salt, 65536, 128)
+      val factory         = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1")
+      val encodedPassword = factory.generateSecret(spec).getEncoded
+
       val q: doobie.ConnectionIO[UserBody] =
-        sql"INSERT INTO public.users (email, token, username, bio) VALUES (${user.email}, ${user.password}, ${user.username}, ${user.bio})".update
-          .withUniqueGeneratedKeys[UserBody]("id", "email", "token", "username", "bio")
+        sql"INSERT INTO public.users (email, password, username, bio) VALUES (${user.email}, $encodedPassword, ${user.username}, ${user.bio})".update
+          .withUniqueGeneratedKeys[UserBody]("id", "email", "password", "username", "bio")
 
       q.transact(transactor)
     }

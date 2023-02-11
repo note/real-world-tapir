@@ -4,7 +4,7 @@ CREATE TABLE users (
     -- For synthetic IDs (i.e. ones not appearing in REST API), we use UUID
     id       uuid    NOT NULL DEFAULT uuid_generate_v4(),
     email    VARCHAR NOT NULL UNIQUE,
-    token    VARCHAR NOT NULL,
+    password BYTEA   NOT NULL,
     username VARCHAR NOT NULL UNIQUE,
     bio      TEXT,
 --     TODO: image

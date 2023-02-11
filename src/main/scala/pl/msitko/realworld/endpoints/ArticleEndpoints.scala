@@ -3,6 +3,7 @@ package pl.msitko.realworld.endpoints
 import io.circe.generic.auto.*
 import io.circe.{Decoder, Encoder}
 import pl.msitko.realworld.Entities.*
+import sttp.model.StatusCode
 import sttp.tapir.*
 import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.*
@@ -32,6 +33,7 @@ object ArticleEndpoints:
     .in("api" / "articles")
     .in(jsonBody[CreateArticleReqBody])
     .out(jsonBody[ArticleBody])
+    .out(statusCode(StatusCode.Created))
 
   val updateArticle = endpoint.put
     .in("api" / "articles")
