@@ -26,6 +26,15 @@ class SecuredEndpoints(jwtConfig: JwtConfig):
         case _ => Left(ErrorInfo.Unauthenticated)
     }
 
+  def optionalAuthLogic(tokenOpt: Option[String]): IO[Either[ErrorInfo, Option[UUID]]] =
+    IO.pure {
+      Right(tokenOpt.map(_.stripPrefix(expectedPrefix)).flatMap { token =>
+        JWT.decodeJwtToken(token, jwtConfig) match
+          case Success((userId, expirationDate)) if Instant.now().isBefore(expirationDate) => Some(userId)
+          case _                                                                           => None
+      })
+    }
+
   private val msg =
     "As per https://www.realworld.how/docs/specs/backend-specs/endpoints#authentication-header Authorization is supposed to start with 'Token '"
   private val expectedPrefix = "Token "
@@ -49,3 +58,14 @@ class SecuredEndpoints(jwtConfig: JwtConfig):
         oneOfVariant(statusCode(StatusCode.Unauthorized).and(emptyOutputAs(ErrorInfo.Unauthenticated))),
       ))
     .serverSecurityLogic(authLogic)
+
+  val optionallySecureEndpoint = endpoint
+    // As per https://www.realworld.how/docs/specs/backend-specs/endpoints#authentication-header
+    .securityIn(header[Option[String]]("Authorization"))
+    .errorOut(
+      oneOf[ErrorInfo](
+        oneOfVariant(statusCode(StatusCode.NotFound).and(emptyOutputAs(ErrorInfo.NotFound))),
+        oneOfVariant(statusCode(StatusCode.Forbidden).and(emptyOutputAs(ErrorInfo.Unauthorized))),
+        oneOfVariant(statusCode(StatusCode.Unauthorized).and(emptyOutputAs(ErrorInfo.Unauthenticated))),
+      ))
+    .serverSecurityLogic(optionalAuthLogic)

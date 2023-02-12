@@ -19,73 +19,63 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
     articleEndpoints.listArticles.serverLogicSuccess(_ => IO.pure(Entities.Articles(articles = List.empty)))
 
   val feedArticlesImpl =
-    articleEndpoints.feedArticles.serverLogicSuccess(_ => IO.pure(Entities.Articles(articles = List.empty)))
+    articleEndpoints.feedArticles.serverLogicSuccess(_ => _ => IO.pure(Entities.Articles(articles = List.empty)))
 
   val getArticleImpl =
-    articleEndpoints.getArticle.serverLogicOption { slug =>
-      for {
-        article <- repo.getBySlug(slug)
-        httpArticle = article.map(ArticleBody.fromDB)
-      } yield httpArticle
+    articleEndpoints.getArticle.serverLogic { userIdOpt => slug =>
+      userIdOpt match
+        case Some(userId) =>
+          withArticle2(slug, userId)(dbArticle => ArticleBody.fromDB(dbArticle))
+        case None =>
+          withArticle2(slug)(dbArticle => ArticleBody.fromDB(dbArticle))
     }
 
   val createArticleImpl =
-    articleEndpoints.createArticle.serverLogicSuccess { userId => reqBody =>
+    articleEndpoints.createArticle.serverLogic { userId => reqBody =>
       val dbArticle = reqBody.toDB(generateSlug(reqBody.article.title), Instant.now())
-      repo.insert(dbArticle, userId).map(ArticleBody.fromDB)
+      repo.insert(dbArticle, userId).flatMap(article => getArticleById(article.id, userId))
     }
 
   val updateArticleImpl =
     articleEndpoints.updateArticle.serverLogic { userId => (slug, reqBody) =>
-      for {
-        articleOption <- repo.getBySlug(slug)
-        res <- articleOption match
-          case Some(existingArticle) if existingArticle.authorId == userId =>
-            val changeObj = reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle)
-            // This getArticleById is a bit lazy, we could avoid another DB query by composing existing and changeObj
-            repo.update(changeObj, existingArticle.id).flatMap(_ => getArticleById(existingArticle.id))
-          case Some(_) =>
-            IO.pure(Left(ErrorInfo.Unauthorized))
-          case None =>
-            IO.pure(Left(ErrorInfo.NotFound))
-      } yield res
-    }
-
-  private def getArticleById(id: UUID): IO[Either[ErrorInfo, ArticleBody]] =
-    repo.getById(id).map {
-      case Some(article) => Right(ArticleBody.fromDB(article))
-      case None          => Left(ErrorInfo.NotFound)
+      withOwnedArticle(userId, slug) { existingArticle =>
+        val changeObj = reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle.article)
+        // This getArticleById is a bit lazy, we could avoid another DB query by composing existing and changeObj
+        repo
+          .update(changeObj, existingArticle.article.id)
+          .flatMap(_ => getArticleById(existingArticle.article.id, userId))
+      }
     }
 
   val deleteArticleImpl =
     articleEndpoints.deleteArticle.serverLogic { userId => slug =>
-      for {
-        articleOption <- repo.getBySlug(slug)
-        res <- articleOption match
-          case Some(a) if a.authorId == userId =>
-            repo.delete(slug).map(_ => Right(()))
-          case Some(_) =>
-            IO.pure(Left(ErrorInfo.Unauthorized))
-          case None =>
-            IO.pure(Left(ErrorInfo.NotFound))
-      } yield res
+      withOwnedArticle(userId, slug) { _ =>
+        repo.delete(slug).map(_ => Right(()))
+      }
     }
 
   val addCommentImpl =
-    articleEndpoints.addComment.serverLogicSuccess(slug => IO.pure(ExampleResponses.commentBody))
+    articleEndpoints.addComment.serverLogicSuccess(_ => slug => IO.pure(ExampleResponses.commentBody))
 
   val getCommentsImpl =
     articleEndpoints.getComments.serverLogicSuccess(slug =>
       IO.pure(Entities.Comments(comments = List(ExampleResponses.comment))))
 
   val deleteCommentImpl =
-    articleEndpoints.deleteComment.serverLogicSuccess((slug, commentId) => IO.pure(()))
+    articleEndpoints.deleteComment.serverLogicSuccess(userId => (slug, commentId) => IO.pure(()))
 
   val favoriteArticleImpl =
-    articleEndpoints.favoriteArticle.serverLogicSuccess(slug => IO.pure(ExampleResponses.articleBody))
+    articleEndpoints.favoriteArticle.serverLogic { userId => slug =>
+      withArticle(slug) { article =>
+        val articleBody = ArticleBody.fromDB(article)
+        val updatedArticle = articleBody.copy(article =
+          articleBody.article.copy(favorited = true, favoritesCount = articleBody.article.favoritesCount + 1))
+        repo.insertFavorite(article.article.id, userId).map(_ => Right(updatedArticle))
+      }
+    }
 
   val unfavoriteArticleImpl =
-    articleEndpoints.unfavoriteArticle.serverLogicSuccess(slug => IO.pure(ExampleResponses.articleBody))
+    articleEndpoints.unfavoriteArticle.serverLogicSuccess(userId => slug => IO.pure(ExampleResponses.articleBody))
 
   def services = List(
     listArticlesImpl,
@@ -104,3 +94,65 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
   // TODO: Replace with proper implementation
   private def generateSlug(title: String): String =
     URLEncoder.encode(title, StandardCharsets.UTF_8)
+
+  private def getArticleById(articleId: UUID, userId: UUID): IO[Either[ErrorInfo, ArticleBody]] =
+    repo.getById(articleId, userId).map {
+      case Some(article) => Right(ArticleBody.fromDB(article))
+      case None          => Left(ErrorInfo.NotFound)
+    }
+
+  private def withOwnedArticle[T](userId: UUID, slug: String)(
+      fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
+    for {
+      articleOption <- repo.getBySlug(slug)
+      res <- articleOption match
+        case Some(a) if a.article.authorId == userId =>
+          fn(a)
+        case Some(_) =>
+          IO.pure(Left(ErrorInfo.Unauthorized))
+        case None =>
+          IO.pure(Left(ErrorInfo.NotFound))
+    } yield res
+
+  private def withArticle[T](slug: String)(fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
+    for {
+      articleOption <- repo.getBySlug(slug)
+      res <- articleOption match
+        case Some(article) =>
+          fn(article)
+        case None =>
+          IO.pure(Left(ErrorInfo.NotFound))
+    } yield res
+
+  // TODO: rename
+  private def withArticle2[T](slug: String)(fn: db.FullArticle => T): IO[Either[ErrorInfo, T]] =
+    for {
+      articleOption <- repo.getBySlug(slug)
+      res <- articleOption match
+        case Some(article) =>
+          IO.pure(Right(fn(article)))
+        case None =>
+          IO.pure(Left(ErrorInfo.NotFound))
+    } yield res
+
+  private def withArticle[T](slug: String, subjectUserId: UUID)(
+      fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
+    for {
+      articleOption <- repo.getBySlug(slug, subjectUserId)
+      res <- articleOption match
+        case Some(article) =>
+          fn(article)
+        case None =>
+          IO.pure(Left(ErrorInfo.NotFound))
+    } yield res
+
+  // TODO: rename
+  private def withArticle2[T](slug: String, subjectUserId: UUID)(fn: db.FullArticle => T): IO[Either[ErrorInfo, T]] =
+    for {
+      articleOption <- repo.getBySlug(slug, subjectUserId)
+      res <- articleOption match
+        case Some(article) =>
+          IO.pure(Right(fn(article)))
+        case None =>
+          IO.pure(Left(ErrorInfo.NotFound))
+    } yield res

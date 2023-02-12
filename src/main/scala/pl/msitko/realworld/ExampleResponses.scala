@@ -17,7 +17,7 @@ object ExampleResponses:
   def profile(username: String) =
     Entities.Profile(
       username = username,
-      bio = "I work at statefarm",
+      bio = "I work at statefarm".some,
       image = "https://api.realworld.io/images/smiley-cyrus.jpg".some,
       following = false
     )

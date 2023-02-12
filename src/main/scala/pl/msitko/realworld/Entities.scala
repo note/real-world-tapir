@@ -42,7 +42,7 @@ object Entities:
 
   final case class RegistrationReqBody(user: RegistrationUserBody)
 
-  final case class Profile(username: String, bio: String, image: Option[String], following: Boolean):
+  final case class Profile(username: String, bio: Option[String], image: Option[String], following: Boolean):
     def body: ProfileBody = ProfileBody(profile = this)
 
   final case class ProfileBody(profile: Profile)
@@ -72,18 +72,23 @@ object Entities:
 
   final case class ArticleBody(article: Article)
   object ArticleBody:
-    def fromDB(dbArticle: db.Article): ArticleBody =
+    def fromDB(dbArticle: db.FullArticle): ArticleBody =
       ArticleBody(article = Entities.Article(
-        slug = dbArticle.slug,
-        title = dbArticle.title,
-        description = dbArticle.description,
-        body = dbArticle.body,
-        tagList = List.empty, // TODO: implement it
-        createdAt = dbArticle.createdAt,
-        updatedAt = dbArticle.updatedAt,
-        favorited = false,                       // TODO: implement it
-        favoritesCount = 0,                      // TODO: implement it
-        author = ExampleResponses.profile("abc") // TODO: implement it
+        slug = dbArticle.article.slug,
+        title = dbArticle.article.title,
+        description = dbArticle.article.description,
+        body = dbArticle.article.body,
+        tagList = dbArticle.tags, // TODO: implement it
+        createdAt = dbArticle.article.createdAt,
+        updatedAt = dbArticle.article.updatedAt,
+        favorited = dbArticle.favorited.isDefined,              // TODO: implement it
+        favoritesCount = dbArticle.favoritesCount.getOrElse(0), // TODO: implement it
+        author = Profile(
+          username = dbArticle.author.username,
+          bio = dbArticle.author.bio,
+          image = None,     // TODO: implement it
+          following = false // TODO: implement it
+        )
       ))
 
   final case class Article(

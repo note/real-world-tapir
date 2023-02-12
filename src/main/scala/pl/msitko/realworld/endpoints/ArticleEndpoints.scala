@@ -23,17 +23,16 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
     .in(query[String]("offset"))
     .out(jsonBody[Articles])
 
-  val feedArticles = endpoint.get
+  val feedArticles = secureEndpoint.get
     .in("api" / "articles" / "feed")
     .in(query[String]("limit"))
     .in(query[String]("offset"))
     .out(jsonBody[Articles])
 
-  val getArticle = endpoint.get
+  val getArticle = optionallySecureEndpoint.get
     .in("api" / "articles")
     .in(path[String])
     .out(jsonBody[ArticleBody])
-    .errorOut(statusCode(StatusCode.NotFound))
 
   val createArticle =
     secureEndpoint.post
@@ -53,7 +52,7 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
     .in(path[String])
     .out(jsonBody[Unit])
 
-  val addComment = endpoint.post
+  val addComment = secureEndpoint.post
     .in("api" / "articles")
     .in(path[String])
     .in("comments")
@@ -66,20 +65,20 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
     .in("comments")
     .out(jsonBody[Comments])
 
-  val deleteComment = endpoint.delete
+  val deleteComment = secureEndpoint.delete
     .in("api" / "articles")
     .in(path[String])
     .in("comments")
     .in(path[String])
     .out(jsonBody[Unit])
 
-  val favoriteArticle = endpoint.post
+  val favoriteArticle = secureEndpoint.post
     .in("api" / "articles")
     .in(path[String])
     .in("favorite")
     .out(jsonBody[ArticleBody])
 
-  val unfavoriteArticle = endpoint.delete
+  val unfavoriteArticle = secureEndpoint.delete
     .in("api" / "articles")
     .in(path[String])
     .in("favorite")

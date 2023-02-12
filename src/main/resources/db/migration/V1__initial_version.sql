@@ -30,6 +30,12 @@ CREATE TABLE articles (
     PRIMARY KEY(id)
 );
 
+CREATE TABLE favorites (
+    article_id  uuid        NOT NULL REFERENCES articles(id),
+    user_id     uuid        NOT NULL REFERENCES users(id),
+    PRIMARY KEY(article_id, user_id)
+);
+
 CREATE TABLE tags (
     id          uuid        NOT NULL DEFAULT uuid_generate_v4(),
     tag         VARCHAR     NOT NULL,
