@@ -62,9 +62,14 @@ class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtCon
         commentRepo.insert(comment).map(c => FullComment(c, article.author))
 
         for {
-          inserted     <- commentRepo.insert(comment)
-          insertedFull <- commentRepo.getForCommentId(inserted.id)
-        } yield Right(CommentBody.fromDB(insertedFull))
+          inserted   <- commentRepo.insert(comment)
+          commentOpt <- commentRepo.getForCommentId(inserted.id)
+          res <- commentOpt match
+            case Some(comment) =>
+              IO.pure(Right(CommentBody.fromDB(comment)))
+            case None =>
+              IO.pure(Left(ErrorInfo.NotFound))
+        } yield res
       }
     }
 
@@ -78,7 +83,18 @@ class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtCon
     }
 
   val deleteCommentImpl =
-    articleEndpoints.deleteComment.serverLogicSuccess(userId => (slug, commentId) => IO.pure(()))
+    articleEndpoints.deleteComment.serverLogic { userId => (slug, commentId) =>
+      for {
+        commentOpt <- commentRepo.getForCommentId(commentId)
+        res <- commentOpt match
+          case Some(comment) if comment.comment.authorId == userId =>
+            commentRepo.delete(commentId).map(_ => Right(()))
+          case Some(comment) =>
+            IO.pure(Left(ErrorInfo.Unauthorized))
+          case None =>
+            IO.pure(Left(ErrorInfo.NotFound))
+      } yield res
+    }
 
   val favoriteArticleImpl =
     articleEndpoints.favoriteArticle.serverLogic { userId => slug =>

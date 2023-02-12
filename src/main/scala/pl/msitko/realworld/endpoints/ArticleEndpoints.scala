@@ -69,7 +69,7 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
     .in("api" / "articles")
     .in(path[String])
     .in("comments")
-    .in(path[String])
+    .in(path[Int])
     .out(jsonBody[Unit])
 
   val favoriteArticle = secureEndpoint.post

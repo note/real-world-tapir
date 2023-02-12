@@ -53,11 +53,11 @@ class CommentRepo(transactor: Transactor[IO]):
       .withUniqueGeneratedKeys[Comment]("id", "author_id", "article_id", "body", "created_at", "updated_at")
       .transact(transactor)
 
-  def getForCommentId(commentId: Int): IO[FullComment] =
+  def getForCommentId(commentId: Int): IO[Option[FullComment]] =
     sql"""SELECT c.id, c.author_id, c.article_id, c.body, c.created_at, c.updated_at, u.username, u.bio
          |    FROM comments c 
          |    JOIN users u ON c.author_id = u.id 
-         |    WHERE c.id=$commentId""".stripMargin.query[FullComment].unique.transact(transactor)
+         |    WHERE c.id=$commentId""".stripMargin.query[FullComment].option.transact(transactor)
 
   def getForArticleId(articleId: UUID): IO[List[FullComment]] =
     sql"""SELECT c.id, c.author_id, c.article_id, c.body, c.created_at, c.updated_at, u.username, u.bio
