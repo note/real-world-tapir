@@ -106,7 +106,7 @@ class ArticleRepo(transactor: Transactor[IO]):
       }
 
   def insert(article: ArticleNoId, authorId: UUID): IO[Article] =
-    sql"""INSERT INTO public.articles (author_id, slug, title, description, body, created_at, updated_at) 
+    sql"""INSERT INTO articles (author_id, slug, title, description, body, created_at, updated_at)
          |VALUES ($authorId, ${article.slug}, ${article.title}, ${article.description}, ${article.body}, ${article.createdAt}, ${article.updatedAt})""".stripMargin.update
       .withUniqueGeneratedKeys[Article](
         "id",
@@ -120,7 +120,7 @@ class ArticleRepo(transactor: Transactor[IO]):
       .transact(transactor)
 
   def update(ch: UpdateArticle, articleId: UUID): IO[Int] =
-    sql"""UPDATE public.articles SET 
+    sql"""UPDATE articles SET
          |slug = ${ch.slug},
          |title = ${ch.title},
          |description = ${ch.description},
@@ -156,10 +156,13 @@ class ArticleRepo(transactor: Transactor[IO]):
     getById3(id).transact(transactor)
 
   def delete(slug: String): IO[Int] =
-    sql"DELETE FROM public.articles WHERE slug=$slug".update.run.transact(transactor)
+    sql"DELETE FROM articles WHERE slug=$slug".update.run.transact(transactor)
 
   def insertFavorite(articleId: UUID, userId: UUID): IO[Int] =
-    sql"INSERT INTO public.favorites (article_id, user_id) VALUES ($articleId, $userId)".update.run.transact(transactor)
+    sql"INSERT INTO favorites (article_id, user_id) VALUES ($articleId, $userId)".update.run.transact(transactor)
+
+  def deleteFavorite(articleId: UUID, userId: UUID): IO[Int] =
+    sql"DELETE FROM favorites WHERE article_id=$articleId AND user_id=$userId".update.run.transact(transactor)
 
   private def idForSlug(slug: String): doobie.ConnectionIO[Option[UUID]] =
     sql"SELECT id FROM articles WHERE slug=$slug"
@@ -199,13 +202,3 @@ class ArticleRepo(transactor: Transactor[IO]):
        """.stripMargin
       .query[FullArticle]
       .option
-
-// TODO: remove
-//  def countFavorites(articleId: UUID): IO[Int] =
-//    sql"SELECT COUNT(user_id) from public.favorites where article_id=$articleId".query[Int].unique.transact(transactor)
-//
-//  def favoritedBy(articleId: UUID, userId: UUID): IO[Boolean] =
-//    sql"SELECT COUNT(user_id) > 0 from public.favorites where article_id=$articleId AND user_id=$userId"
-//      .query[Boolean]
-//      .unique
-//      .transact(transactor)

@@ -66,7 +66,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
 
   val favoriteArticleImpl =
     articleEndpoints.favoriteArticle.serverLogic { userId => slug =>
-      withArticle(slug) { article =>
+      withArticle(slug, userId) { article =>
         val articleBody = ArticleBody.fromDB(article)
         val updatedArticle = articleBody.copy(article =
           articleBody.article.copy(favorited = true, favoritesCount = articleBody.article.favoritesCount + 1))
@@ -75,7 +75,14 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
     }
 
   val unfavoriteArticleImpl =
-    articleEndpoints.unfavoriteArticle.serverLogicSuccess(userId => slug => IO.pure(ExampleResponses.articleBody))
+    articleEndpoints.unfavoriteArticle.serverLogic { userId => slug =>
+      withArticle(slug, userId) { article =>
+        for {
+          _              <- repo.deleteFavorite(article.article.id, userId)
+          updatedArticle <- getArticleById(article.article.id, userId)
+        } yield updatedArticle
+      }
+    }
 
   def services = List(
     listArticlesImpl,
