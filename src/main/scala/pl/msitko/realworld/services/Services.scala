@@ -3,7 +3,7 @@ package pl.msitko.realworld.services
 import cats.effect.IO
 import doobie.util.transactor.Transactor
 import pl.msitko.realworld.AppConfig
-import pl.msitko.realworld.db.{ArticleRepo, UserRepo}
+import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, UserRepo}
 import pl.msitko.realworld.services.{ArticleServices, ProfileServices, TagServices, UserServices}
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics
@@ -27,7 +27,8 @@ object Services:
   def apply(transactor: Transactor[IO], appConfig: AppConfig): Services =
     val articleServices =
       val articleRepo = new ArticleRepo(transactor)
-      new ArticleServices(articleRepo, appConfig.jwt)
+      val commentRepo = new CommentRepo(transactor)
+      new ArticleServices(articleRepo, commentRepo, appConfig.jwt)
     val userServices =
       val userRepo = new UserRepo(transactor)
       new UserServices(userRepo, appConfig.jwt)

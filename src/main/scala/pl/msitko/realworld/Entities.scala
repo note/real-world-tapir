@@ -1,6 +1,7 @@
 package pl.msitko.realworld
 
 import java.time.Instant
+import java.util.UUID
 
 object Entities:
   final case class AuthenticationReqBodyUser(email: String, password: String)
@@ -18,12 +19,22 @@ object Entities:
 
   final case class AddCommentReq(body: String)
 
-  final case class AddCommentReqBody(comment: AddCommentReq)
+  final case class AddCommentReqBody(comment: AddCommentReq):
+    def toDB(authorId: UUID, articleId: UUID, now: Instant): db.CommentNoId =
+      db.CommentNoId(authorId = authorId, articleId = articleId, body = comment.body, createdAt = now, updatedAt = now)
 
   final case class Comment(id: Int, createdAt: Instant, updatedAt: Instant, body: String, author: Profile):
     def toBody: CommentBody = CommentBody(comment = this)
 
   final case class CommentBody(comment: Comment)
+  object CommentBody:
+    def fromDB(dbComment: db.FullComment): CommentBody =
+      CommentBody(comment = Comment(
+        id = dbComment.comment.id,
+        createdAt = dbComment.comment.createdAt,
+        updatedAt = dbComment.comment.createdAt,
+        body = dbComment.comment.body,
+        author = Profile.fromDB(dbComment.author)))
 
   final case class Comments(comments: List[Comment])
 
@@ -44,6 +55,15 @@ object Entities:
 
   final case class Profile(username: String, bio: Option[String], image: Option[String], following: Boolean):
     def body: ProfileBody = ProfileBody(profile = this)
+
+  object Profile:
+    def fromDB(author: db.Author) =
+      Profile(
+        username = author.username,
+        bio = author.bio,
+        image = None,     // TODO: implement it
+        following = false // TODO: implement it
+      )
 
   final case class ProfileBody(profile: Profile)
 
@@ -83,12 +103,7 @@ object Entities:
         updatedAt = dbArticle.article.updatedAt,
         favorited = dbArticle.favorited.isDefined,              // TODO: implement it
         favoritesCount = dbArticle.favoritesCount.getOrElse(0), // TODO: implement it
-        author = Profile(
-          username = dbArticle.author.username,
-          bio = dbArticle.author.bio,
-          image = None,     // TODO: implement it
-          following = false // TODO: implement it
-        )
+        author = Profile.fromDB(dbArticle.author)
       ))
 
   final case class Article(

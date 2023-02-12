@@ -53,6 +53,7 @@ CREATE TABLE comments (
     -- hence SERIAL
     id          SERIAL      NOT NULL,
     author_id   uuid        NOT NULL REFERENCES users(id),
+    article_id  uuid        NOT NULL REFERENCES articles(id),
     body        TEXT        NOT NULL,
     created_at  TIMESTAMP   NOT NULL,
     updated_at  TIMESTAMP   NOT NULL,

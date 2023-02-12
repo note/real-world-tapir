@@ -33,13 +33,13 @@ final case class Article(
 // FullArticle represents a result row of data related to a single article and JOINed over many tables
 final case class FullArticle(
     article: Article,
-    author: ArticleAuthor,
+    author: Author,
     favoritesCount: Option[Int],
     favorited: Option[Int],
     tags: List[String]
 )
 
-final case class ArticleAuthor(
+final case class Author(
     username: String,
     bio: Option[String],
 )
@@ -94,7 +94,7 @@ class ArticleRepo(transactor: Transactor[IO]):
             authorId = authorId)
           FullArticle(
             article = article,
-            author = ArticleAuthor(
+            author = Author(
               username = authorUsername,
               bio = authorBio
             ),

@@ -1,9 +1,9 @@
 package pl.msitko.realworld.services
 
 import cats.effect.IO
-import pl.msitko.realworld.Entities.ArticleBody
+import pl.msitko.realworld.Entities.{ArticleBody, CommentBody}
 import pl.msitko.realworld.db
-import pl.msitko.realworld.db.ArticleRepo
+import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FullComment}
 import pl.msitko.realworld.{Entities, ExampleResponses, JwtConfig}
 import pl.msitko.realworld.endpoints.{ArticleEndpoints, ErrorInfo}
 
@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
-class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
+class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtConfig: JwtConfig):
   val articleEndpoints = new ArticleEndpoints(jwtConfig)
 
   val listArticlesImpl =
@@ -33,7 +33,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
   val createArticleImpl =
     articleEndpoints.createArticle.serverLogic { userId => reqBody =>
       val dbArticle = reqBody.toDB(generateSlug(reqBody.article.title), Instant.now())
-      repo.insert(dbArticle, userId).flatMap(article => getArticleById(article.id, userId))
+      articleRepo.insert(dbArticle, userId).flatMap(article => getArticleById(article.id, userId))
     }
 
   val updateArticleImpl =
@@ -41,7 +41,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
       withOwnedArticle(userId, slug) { existingArticle =>
         val changeObj = reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle.article)
         // This getArticleById is a bit lazy, we could avoid another DB query by composing existing and changeObj
-        repo
+        articleRepo
           .update(changeObj, existingArticle.article.id)
           .flatMap(_ => getArticleById(existingArticle.article.id, userId))
       }
@@ -50,12 +50,23 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
   val deleteArticleImpl =
     articleEndpoints.deleteArticle.serverLogic { userId => slug =>
       withOwnedArticle(userId, slug) { _ =>
-        repo.delete(slug).map(_ => Right(()))
+        articleRepo.delete(slug).map(_ => Right(()))
       }
     }
 
   val addCommentImpl =
-    articleEndpoints.addComment.serverLogicSuccess(_ => slug => IO.pure(ExampleResponses.commentBody))
+    articleEndpoints.addComment.serverLogic { userId => (slug, reqBody) =>
+      withArticle(slug) { article =>
+        val comment = reqBody.toDB(userId, article.article.id, Instant.now)
+
+        commentRepo.insert(comment).map(c => FullComment(c, article.author))
+
+        for {
+          inserted     <- commentRepo.insert(comment)
+          insertedFull <- commentRepo.getForCommentId(inserted.id)
+        } yield Right(CommentBody.fromDB(insertedFull))
+      }
+    }
 
   val getCommentsImpl =
     articleEndpoints.getComments.serverLogicSuccess(slug =>
@@ -70,7 +81,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
         val articleBody = ArticleBody.fromDB(article)
         val updatedArticle = articleBody.copy(article =
           articleBody.article.copy(favorited = true, favoritesCount = articleBody.article.favoritesCount + 1))
-        repo.insertFavorite(article.article.id, userId).map(_ => Right(updatedArticle))
+        articleRepo.insertFavorite(article.article.id, userId).map(_ => Right(updatedArticle))
       }
     }
 
@@ -78,7 +89,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
     articleEndpoints.unfavoriteArticle.serverLogic { userId => slug =>
       withArticle(slug, userId) { article =>
         for {
-          _              <- repo.deleteFavorite(article.article.id, userId)
+          _              <- articleRepo.deleteFavorite(article.article.id, userId)
           updatedArticle <- getArticleById(article.article.id, userId)
         } yield updatedArticle
       }
@@ -103,7 +114,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
     URLEncoder.encode(title, StandardCharsets.UTF_8)
 
   private def getArticleById(articleId: UUID, userId: UUID): IO[Either[ErrorInfo, ArticleBody]] =
-    repo.getById(articleId, userId).map {
+    articleRepo.getById(articleId, userId).map {
       case Some(article) => Right(ArticleBody.fromDB(article))
       case None          => Left(ErrorInfo.NotFound)
     }
@@ -111,7 +122,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
   private def withOwnedArticle[T](userId: UUID, slug: String)(
       fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
     for {
-      articleOption <- repo.getBySlug(slug)
+      articleOption <- articleRepo.getBySlug(slug)
       res <- articleOption match
         case Some(a) if a.article.authorId == userId =>
           fn(a)
@@ -123,7 +134,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
 
   private def withArticle[T](slug: String)(fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
     for {
-      articleOption <- repo.getBySlug(slug)
+      articleOption <- articleRepo.getBySlug(slug)
       res <- articleOption match
         case Some(article) =>
           fn(article)
@@ -134,7 +145,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
   // TODO: rename
   private def withArticle2[T](slug: String)(fn: db.FullArticle => T): IO[Either[ErrorInfo, T]] =
     for {
-      articleOption <- repo.getBySlug(slug)
+      articleOption <- articleRepo.getBySlug(slug)
       res <- articleOption match
         case Some(article) =>
           IO.pure(Right(fn(article)))
@@ -145,7 +156,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
   private def withArticle[T](slug: String, subjectUserId: UUID)(
       fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
     for {
-      articleOption <- repo.getBySlug(slug, subjectUserId)
+      articleOption <- articleRepo.getBySlug(slug, subjectUserId)
       res <- articleOption match
         case Some(article) =>
           fn(article)
@@ -156,7 +167,7 @@ class ArticleServices(repo: ArticleRepo, jwtConfig: JwtConfig):
   // TODO: rename
   private def withArticle2[T](slug: String, subjectUserId: UUID)(fn: db.FullArticle => T): IO[Either[ErrorInfo, T]] =
     for {
-      articleOption <- repo.getBySlug(slug, subjectUserId)
+      articleOption <- articleRepo.getBySlug(slug, subjectUserId)
       res <- articleOption match
         case Some(article) =>
           IO.pure(Right(fn(article)))
