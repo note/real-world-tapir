@@ -25,16 +25,19 @@ object Entities:
 
   final case class Comment(id: Int, createdAt: Instant, updatedAt: Instant, body: String, author: Profile):
     def toBody: CommentBody = CommentBody(comment = this)
-
-  final case class CommentBody(comment: Comment)
-  object CommentBody:
-    def fromDB(dbComment: db.FullComment): CommentBody =
-      CommentBody(comment = Comment(
+  object Comment:
+    def fromDB(dbComment: db.FullComment): Comment =
+      Comment(
         id = dbComment.comment.id,
         createdAt = dbComment.comment.createdAt,
         updatedAt = dbComment.comment.createdAt,
         body = dbComment.comment.body,
-        author = Profile.fromDB(dbComment.author)))
+        author = Profile.fromDB(dbComment.author))
+
+  final case class CommentBody(comment: Comment)
+  object CommentBody:
+    def fromDB(dbComment: db.FullComment): CommentBody =
+      CommentBody(comment = Comment.fromDB(dbComment))
 
   final case class Comments(comments: List[Comment])
 

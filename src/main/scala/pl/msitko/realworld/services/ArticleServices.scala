@@ -1,7 +1,7 @@
 package pl.msitko.realworld.services
 
 import cats.effect.IO
-import pl.msitko.realworld.Entities.{ArticleBody, CommentBody}
+import pl.msitko.realworld.Entities.{ArticleBody, Comment, CommentBody, Comments}
 import pl.msitko.realworld.db
 import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FullComment}
 import pl.msitko.realworld.{Entities, ExampleResponses, JwtConfig}
@@ -69,8 +69,13 @@ class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtCon
     }
 
   val getCommentsImpl =
-    articleEndpoints.getComments.serverLogicSuccess(slug =>
-      IO.pure(Entities.Comments(comments = List(ExampleResponses.comment))))
+    articleEndpoints.getComments.serverLogic { userIdOpt => slug =>
+      withArticle(slug) { article =>
+        commentRepo
+          .getForArticleId(article.article.id)
+          .map(dbComments => Right(Comments(dbComments.map(Comment.fromDB))))
+      }
+    }
 
   val deleteCommentImpl =
     articleEndpoints.deleteComment.serverLogicSuccess(userId => (slug, commentId) => IO.pure(()))

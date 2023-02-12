@@ -59,7 +59,7 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
     .in(jsonBody[AddCommentReqBody])
     .out(jsonBody[CommentBody])
 
-  val getComments = endpoint.get
+  val getComments = optionallySecureEndpoint.get
     .in("api" / "articles")
     .in(path[String])
     .in("comments")
