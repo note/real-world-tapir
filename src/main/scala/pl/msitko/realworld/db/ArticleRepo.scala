@@ -42,6 +42,8 @@ final case class FullArticle(
 final case class Author(
     username: String,
     bio: Option[String],
+    image: Option[String],
+    following: Boolean,
 )
 
 final case class UpdateArticle(
@@ -65,6 +67,8 @@ class ArticleRepo(transactor: Transactor[IO]):
         UUID,
         String,
         Option[String],
+        Option[String],
+        Option[Int],
         Option[Int],
         Option[Int],
         Option[String])]
@@ -80,8 +84,10 @@ class ArticleRepo(transactor: Transactor[IO]):
               authorId,
               authorUsername,
               authorBio,
+              image,
               favoritesCount,
               favorited,
+              following,
               tags) =>
           val article = Article(
             id = id,
@@ -96,7 +102,9 @@ class ArticleRepo(transactor: Transactor[IO]):
             article = article,
             author = Author(
               username = authorUsername,
-              bio = authorBio
+              bio = authorBio,
+              image = image,
+              following = following.isDefined,
             ),
             favoritesCount = favoritesCount,
             favorited = favorited,
@@ -152,9 +160,6 @@ class ArticleRepo(transactor: Transactor[IO]):
   def getById(id: UUID, subjectUserId: UUID): IO[Option[FullArticle]] =
     getById2(id, subjectUserId).transact(transactor)
 
-  def getById(id: UUID): IO[Option[FullArticle]] =
-    getById3(id).transact(transactor)
-
   def delete(slug: String): IO[Int] =
     sql"DELETE FROM articles WHERE slug=$slug".update.run.transact(transactor)
 
@@ -173,16 +178,19 @@ class ArticleRepo(transactor: Transactor[IO]):
   private def getById2(articleId: UUID, subjectUserId: UUID): doobie.ConnectionIO[Option[FullArticle]] =
     sql"""
          |WITH favoritez AS (SELECT article_id, COUNT(user_id) count FROM favorites WHERE article_id=$articleId GROUP BY article_id),
-         |     tagz      AS (SELECT a.id article_id, STRING_AGG(distinct t2.tag, ',' ORDER BY t2.tag ASC) tags from articles a JOIN articles_tags t on a.id = t.article_id JOIN tags t2 on t.tag_id = t2.id WHERE article_id=$articleId GROUP BY a.id)
-         |SELECT a.id, a.slug, a.title, a.description, a.body, a.created_at, a.updated_at, a.author_id, u.username, u.bio, f.count as favoritez_count,
+         |     tagz      AS (SELECT a.id article_id, STRING_AGG(distinct t2.tag, ',' ORDER BY t2.tag ASC) tags from articles a JOIN articles_tags t on a.id = t.article_id JOIN tags t2 on t.tag_id = t2.id WHERE article_id=$articleId GROUP BY a.id),
+         |     followerz AS (SELECT followed, COUNT(follower) count FROM followers WHERE follower=$subjectUserId GROUP BY followed)
+         |SELECT a.id, a.slug, a.title, a.description, a.body, a.created_at, a.updated_at, a.author_id, u.username, u.bio, u.image, f.count as favoritez_count,
          |       (select count(user_id) from favorites where article_id=a.id and user_id=${subjectUserId} group by user_id) favorited,
+         |       flrz.count,
          |       t.tags
          |FROM articles a
          |JOIN users u ON a.author_id = u.id
          |LEFT JOIN favoritez f ON a.id = f.article_id
          |LEFT JOIN tagz t ON a.id = t.article_id
+         |LEFT JOIN followerz flrz ON a.author_id = flrz.followed
          |WHERE a.id=$articleId;
-       """.stripMargin
+     """.stripMargin
       .query[FullArticle]
       .option
 
@@ -191,7 +199,8 @@ class ArticleRepo(transactor: Transactor[IO]):
     sql"""
          |WITH favoritez AS (SELECT article_id, COUNT(user_id) count FROM favorites WHERE article_id=$articleId GROUP BY article_id),
          |     tagz      AS (SELECT a.id article_id, STRING_AGG(distinct t2.tag, ',' ORDER BY t2.tag ASC) tags from articles a JOIN articles_tags t on a.id = t.article_id JOIN tags t2 on t.tag_id = t2.id WHERE article_id=$articleId GROUP BY a.id)
-         |SELECT a.id, a.slug, a.title, a.description, a.body, a.created_at, a.updated_at, a.author_id, u.username, u.bio, f.count as favoritez_count,
+         |SELECT a.id, a.slug, a.title, a.description, a.body, a.created_at, a.updated_at, a.author_id, u.username, u.bio, u.image, f.count as favoritez_count,
+         |       NULL,
          |       NULL,
          |       t.tags
          |FROM articles a

@@ -3,7 +3,7 @@ package pl.msitko.realworld.services
 import cats.effect.IO
 import pl.msitko.realworld.Entities.{ArticleBody, Comment, CommentBody, Comments}
 import pl.msitko.realworld.db
-import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FullComment}
+import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FullArticle, FullComment}
 import pl.msitko.realworld.{Entities, ExampleResponses, JwtConfig}
 import pl.msitko.realworld.endpoints.{ArticleEndpoints, ErrorInfo}
 
@@ -23,11 +23,7 @@ class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtCon
 
   val getArticleImpl =
     articleEndpoints.getArticle.serverLogic { userIdOpt => slug =>
-      userIdOpt match
-        case Some(userId) =>
-          withArticle2(slug, userId)(dbArticle => ArticleBody.fromDB(dbArticle))
-        case None =>
-          withArticle2(slug)(dbArticle => ArticleBody.fromDB(dbArticle))
+      withArticleOpt2(slug, userIdOpt)(dbArticle => ArticleBody.fromDB(dbArticle))
     }
 
   val createArticleImpl =
@@ -56,14 +52,12 @@ class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtCon
 
   val addCommentImpl =
     articleEndpoints.addComment.serverLogic { userId => (slug, reqBody) =>
-      withArticle(slug) { article =>
+      withArticle(slug, userId) { article =>
         val comment = reqBody.toDB(userId, article.article.id, Instant.now)
-
-        commentRepo.insert(comment).map(c => FullComment(c, article.author))
 
         for {
           inserted   <- commentRepo.insert(comment)
-          commentOpt <- commentRepo.getForCommentId(inserted.id)
+          commentOpt <- commentRepo.getForCommentId(inserted.id, userId)
           res <- commentOpt match
             case Some(comment) =>
               IO.pure(Right(CommentBody.fromDB(comment)))
@@ -75,9 +69,9 @@ class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtCon
 
   val getCommentsImpl =
     articleEndpoints.getComments.serverLogic { userIdOpt => slug =>
-      withArticle(slug) { article =>
+      withArticleOpt(slug, userIdOpt) { article =>
         commentRepo
-          .getForArticleId(article.article.id)
+          .getForArticleId(article.article.id, userIdOpt)
           .map(dbComments => Right(Comments(dbComments.map(Comment.fromDB))))
       }
     }
@@ -85,7 +79,7 @@ class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtCon
   val deleteCommentImpl =
     articleEndpoints.deleteComment.serverLogic { userId => (slug, commentId) =>
       for {
-        commentOpt <- commentRepo.getForCommentId(commentId)
+        commentOpt <- commentRepo.getForCommentId(commentId, userId)
         res <- commentOpt match
           case Some(comment) if comment.comment.authorId == userId =>
             commentRepo.delete(commentId).map(_ => Right(()))
@@ -153,9 +147,15 @@ class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtCon
           IO.pure(Left(ErrorInfo.NotFound))
     } yield res
 
-  private def withArticle[T](slug: String)(fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
+  private def getBySlug(slug: String, subjectUserId: Option[UUID]) =
+    subjectUserId match
+      case Some(uid) => articleRepo.getBySlug(slug, uid)
+      case None      => articleRepo.getBySlug(slug)
+
+  private def withArticleOpt[T](slug: String, subjectUserId: Option[UUID])(
+      fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
     for {
-      articleOption <- articleRepo.getBySlug(slug)
+      articleOption <- getBySlug(slug, subjectUserId)
       res <- articleOption match
         case Some(article) =>
           fn(article)
@@ -163,35 +163,29 @@ class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtCon
           IO.pure(Left(ErrorInfo.NotFound))
     } yield res
 
-  // TODO: rename
-  private def withArticle2[T](slug: String)(fn: db.FullArticle => T): IO[Either[ErrorInfo, T]] =
+  private def withArticleOpt2[T](slug: String, subjectUserId: Option[UUID])(
+      fn: db.FullArticle => T): IO[Either[ErrorInfo, T]] =
     for {
-      articleOption <- articleRepo.getBySlug(slug)
+      articleOption <- getBySlug(slug, subjectUserId)
       res <- articleOption match
         case Some(article) =>
           IO.pure(Right(fn(article)))
         case None =>
           IO.pure(Left(ErrorInfo.NotFound))
     } yield res
+
+  private def withArticleAnon[T](slug: String)(
+      fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
+    withArticleOpt(slug, None)(fn)
+
+  // TODO: rename
+  private def withArticleAnon2[T](slug: String)(fn: db.FullArticle => T): IO[Either[ErrorInfo, T]] =
+    withArticleOpt2(slug, None)(fn)
 
   private def withArticle[T](slug: String, subjectUserId: UUID)(
       fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
-    for {
-      articleOption <- articleRepo.getBySlug(slug, subjectUserId)
-      res <- articleOption match
-        case Some(article) =>
-          fn(article)
-        case None =>
-          IO.pure(Left(ErrorInfo.NotFound))
-    } yield res
+    withArticleOpt(slug, Some(subjectUserId))(fn)
 
   // TODO: rename
   private def withArticle2[T](slug: String, subjectUserId: UUID)(fn: db.FullArticle => T): IO[Either[ErrorInfo, T]] =
-    for {
-      articleOption <- articleRepo.getBySlug(slug, subjectUserId)
-      res <- articleOption match
-        case Some(article) =>
-          IO.pure(Right(fn(article)))
-        case None =>
-          IO.pure(Left(ErrorInfo.NotFound))
-    } yield res
+    withArticleOpt2(slug, Some(subjectUserId))(fn)

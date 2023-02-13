@@ -33,7 +33,20 @@ final case class UpdateUser(
     image: Option[String],
 )
 
+final case class FullUser(
+    user: User,
+    followed: Boolean
+)
+
 class UserRepo(transactor: Transactor[IO]):
+  implicit private val fullUserRead: Read[FullUser] =
+    Read[(UUID, String, String, Option[String], Option[String], Option[Int])].map {
+      case (id, email, username, bio, image, followed) =>
+        FullUser(
+          user = User(id = id, email = email, username = username, bio = bio, image = image),
+          followed = followed.isDefined)
+    }
+
   def insert(user: UserNoId, password: String): IO[User] =
     sql"INSERT INTO public.users (email, password, username, bio, image) VALUES (${user.email}, crypt($password, gen_salt('bf', 11)), ${user.username}, ${user.bio}, ${user.image})".update
       .withUniqueGeneratedKeys[User]("id", "email", "username", "bio", "image")
@@ -45,9 +58,12 @@ class UserRepo(transactor: Transactor[IO]):
       .option
       .transact(transactor)
 
-  def getById(userId: UUID): IO[Option[User]] =
-    sql"SELECT id, email, username, bio, image FROM public.users WHERE id=$userId"
-      .query[User]
+  def getById(userId: UUID, subjectUserId: UUID): IO[Option[FullUser]] =
+    sql"""WITH followerz AS (SELECT followed, COUNT(followed) count FROM followers WHERE follower=$subjectUserId AND followed=$userId GROUP BY followed)
+         |                  SELECT id, email, username, bio, image, f.count FROM users
+         |                         LEFT JOIN followerz f ON users.id = f.followed
+         |                         WHERE id = $userId""".stripMargin
+      .query[FullUser]
       .option
       .transact(transactor)
 

@@ -49,7 +49,7 @@ object Entities:
         token = jwtToken,
         username = dbUser.username,
         bio = dbUser.bio,
-        image = None,
+        image = dbUser.image,
       ))
 
   final case class RegistrationUserBody(
@@ -69,7 +69,7 @@ object Entities:
       Profile(
         username = author.username,
         bio = author.bio,
-        image = None,     // TODO: implement it
+        image = author.image,
         following = false // TODO: implement it
       )
 

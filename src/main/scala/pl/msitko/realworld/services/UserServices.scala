@@ -50,9 +50,9 @@ class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
 
   val getCurrentUserImpl =
     userEndpoints.getCurrentUser.serverLogic { userId => _ =>
-      repo.getById(userId).flatMap {
+      repo.getById(userId, userId).flatMap {
         case Some(user) =>
-          IO.pure(Right(UserBody.fromDB(user, JWT.generateJwtToken(user.id.toString, jwtConfig))))
+          IO.pure(Right(UserBody.fromDB(user.user, JWT.generateJwtToken(user.user.id.toString, jwtConfig))))
         case None =>
           IO.pure(Left(ErrorInfo.NotFound))
       }
@@ -61,11 +61,11 @@ class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   val updateUserImpl =
     userEndpoints.updateUser.serverLogic { userId => reqBody =>
       (for {
-        existingUser <- getById(userId)
-        updateObj = reqBody.toDB(existingUser)
+        existingUser <- getById(userId, userId)
+        updateObj = reqBody.toDB(existingUser.user)
         _           <- updateUser(updateObj, userId)
-        updatedUser <- getById(userId)
-      } yield UserBody.fromDB(updatedUser, JWT.generateJwtToken(userId.toString, jwtConfig))).value
+        updatedUser <- getById(userId, userId)
+      } yield UserBody.fromDB(updatedUser.user, JWT.generateJwtToken(userId.toString, jwtConfig))).value
     }
 
   val services = List(
@@ -75,8 +75,8 @@ class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
     updateUserImpl,
   )
 
-  private def getById(userId: UUID): Result[db.User] =
-    EitherT(repo.getById(userId).map {
+  private def getById(userId: UUID, subjectUserId: UUID): Result[db.FullUser] =
+    EitherT(repo.getById(userId, subjectUserId).map {
       case Some(user) => Right(user)
       case None       => Left(ErrorInfo.NotFound)
     })
