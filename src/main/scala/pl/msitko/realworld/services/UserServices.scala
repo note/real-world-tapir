@@ -5,7 +5,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import com.typesafe.scalalogging.StrictLogging
 import pl.msitko.realworld.Entities.UserBody
-import pl.msitko.realworld.{Entities, ExampleResponses, JWT, JwtConfig}
+import pl.msitko.realworld.{Entities, JWT, JwtConfig}
 import pl.msitko.realworld.db
 import pl.msitko.realworld.db.{FullUser, UpdateUser, User, UserNoId, UserRepo}
 import pl.msitko.realworld.endpoints.{ErrorInfo, UserEndpoints}

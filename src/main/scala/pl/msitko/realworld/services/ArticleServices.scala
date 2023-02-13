@@ -4,7 +4,7 @@ import cats.effect.IO
 import pl.msitko.realworld.Entities.{ArticleBody, Comment, CommentBody, Comments}
 import pl.msitko.realworld.db
 import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FullArticle, FullComment}
-import pl.msitko.realworld.{Entities, ExampleResponses, JwtConfig}
+import pl.msitko.realworld.{Entities, JwtConfig}
 import pl.msitko.realworld.endpoints.{ArticleEndpoints, ErrorInfo}
 
 import java.net.URLEncoder

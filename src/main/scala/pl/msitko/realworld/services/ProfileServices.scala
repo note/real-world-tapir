@@ -5,7 +5,7 @@ import cats.effect.IO
 import pl.msitko.realworld.Entities.ProfileBody
 import pl.msitko.realworld.db
 import pl.msitko.realworld.db.{Follow, FollowRepo, UserRepo}
-import pl.msitko.realworld.{ExampleResponses, JwtConfig}
+import pl.msitko.realworld.JwtConfig
 import pl.msitko.realworld.endpoints.{ErrorInfo, ProfileEndpoints}
 
 import java.util.UUID
