@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.StrictLogging
 import pl.msitko.realworld.Entities.UserBody
 import pl.msitko.realworld.{Entities, ExampleResponses, JWT, JwtConfig}
 import pl.msitko.realworld.db
-import pl.msitko.realworld.db.{User, UserNoId, UserRepo}
+import pl.msitko.realworld.db.{FullUser, UpdateUser, User, UserNoId, UserRepo}
 import pl.msitko.realworld.endpoints.{ErrorInfo, UserEndpoints}
 import sttp.model.StatusCode
 import sttp.tapir.server.ServerEndpoint
@@ -18,10 +18,8 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
 class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
-  // Move somewhere else
-  type Result[T] = EitherT[IO, ErrorInfo, T]
-
   val userEndpoints = new UserEndpoints(jwtConfig)
+  val helper        = UserServicesHelper.fromRepo(repo)
 
   val authenticationImpl =
     userEndpoints.authentication.serverLogic { reqBody =>
@@ -61,10 +59,10 @@ class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   val updateUserImpl =
     userEndpoints.updateUser.serverLogic { userId => reqBody =>
       (for {
-        existingUser <- getById(userId, userId)
+        existingUser <- helper.getById(userId, userId)
         updateObj = reqBody.toDB(existingUser.user)
-        _           <- updateUser(updateObj, userId)
-        updatedUser <- getById(userId, userId)
+        _           <- helper.updateUser(updateObj, userId)
+        updatedUser <- helper.getById(userId, userId)
       } yield UserBody.fromDB(updatedUser.user, JWT.generateJwtToken(userId.toString, jwtConfig))).value
     }
 
@@ -75,11 +73,25 @@ class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
     updateUserImpl,
   )
 
-  private def getById(userId: UUID, subjectUserId: UUID): Result[db.FullUser] =
-    EitherT(repo.getById(userId, subjectUserId).map {
-      case Some(user) => Right(user)
-      case None       => Left(ErrorInfo.NotFound)
-    })
+trait UserServicesHelper:
+  def getById(userId: UUID, subjectUserId: UUID): Result[db.FullUser]
+  def getById(userId: UUID): Result[db.FullUser]
+  def updateUser(updateObj: db.UpdateUser, userId: UUID): Result[Unit]
 
-  private def updateUser(updateObj: db.UpdateUser, userId: UUID): Result[Unit] =
-    EitherT(repo.updateUser(updateObj, userId).map(_ => Right(())))
+object UserServicesHelper:
+  def fromRepo(userRepo: UserRepo): UserServicesHelper =
+    new UserServicesHelper:
+      override def getById(userId: UUID, subjectUserId: UUID): Result[FullUser] =
+        EitherT(userRepo.getById(userId, subjectUserId).map {
+          case Some(user) => Right(user)
+          case None       => Left(ErrorInfo.NotFound)
+        })
+
+      override def getById(userId: UUID): Result[db.FullUser] =
+        EitherT(userRepo.getById(userId).map {
+          case Some(user) => Right(user)
+          case None       => Left(ErrorInfo.NotFound)
+        })
+
+      override def updateUser(updateObj: UpdateUser, userId: UUID): Result[Unit] =
+        EitherT(userRepo.updateUser(updateObj, userId).map(_ => Right(())))

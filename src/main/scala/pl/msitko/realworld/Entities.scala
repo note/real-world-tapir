@@ -70,10 +70,13 @@ object Entities:
         username = author.username,
         bio = author.bio,
         image = author.image,
-        following = false // TODO: implement it
+        following = author.following
       )
 
   final case class ProfileBody(profile: Profile)
+
+  object ProfileBody:
+    def fromDB(author: db.Author): ProfileBody = ProfileBody(Profile.fromDB(author))
 
   final case class UpdateUserBody(
       email: Option[String],

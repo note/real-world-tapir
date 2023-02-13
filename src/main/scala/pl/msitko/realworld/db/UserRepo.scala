@@ -36,7 +36,14 @@ final case class UpdateUser(
 final case class FullUser(
     user: User,
     followed: Boolean
-)
+):
+  def toAuthor: Author =
+    Author(
+      username = user.username,
+      bio = user.bio,
+      image = user.bio,
+      following = followed
+    )
 
 class UserRepo(transactor: Transactor[IO]):
   implicit private val fullUserRead: Read[FullUser] =
@@ -66,6 +73,15 @@ class UserRepo(transactor: Transactor[IO]):
       .query[FullUser]
       .option
       .transact(transactor)
+
+  def getById(userId: UUID): IO[Option[FullUser]] =
+    sql"""SELECT id, email, username, bio, image, NULL FROM users WHERE id = $userId""".stripMargin
+      .query[FullUser]
+      .option
+      .transact(transactor)
+
+  def resolveUsername(username: String): IO[Option[UUID]] =
+    sql"SELECT id from users where username=$username".query[UUID].option.transact(transactor)
 
   def updateUser(ch: UpdateUser, userId: UUID): IO[Int] =
     ch.password match

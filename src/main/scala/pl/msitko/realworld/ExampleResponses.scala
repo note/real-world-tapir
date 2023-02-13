@@ -1,11 +1,12 @@
 package pl.msitko.realworld
 
 import cats.implicits.*
+import pl.msitko.realworld.Entities.ProfileBody
 
 import java.time.Instant
 
 object ExampleResponses:
-  def profile(username: String) =
+  def profile(username: String): Entities.Profile =
     Entities.Profile(
       username = username,
       bio = "I work at statefarm".some,
@@ -13,7 +14,7 @@ object ExampleResponses:
       following = false
     )
 
-  def profileBody(username: String) =
+  def profileBody(username: String): Entities.ProfileBody =
     profile(username).body
 
   val article = Entities.Article(
