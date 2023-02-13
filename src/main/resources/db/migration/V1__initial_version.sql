@@ -8,7 +8,7 @@ CREATE TABLE users (
     password TEXT    NOT NULL,
     username VARCHAR NOT NULL UNIQUE,
     bio      TEXT,
---     TODO: image
+    image    TEXT,
     PRIMARY KEY(id)
 );
 
