@@ -34,3 +34,9 @@ class UserRepo(transactor: Transactor[IO]):
       .query[User]
       .option
       .transact(transactor)
+
+  def getById(userId: UUID): IO[Option[User]] =
+    sql"SELECT id, email, username, bio FROM public.users WHERE id=$userId"
+      .query[User]
+      .option
+      .transact(transactor)

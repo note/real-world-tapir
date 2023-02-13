@@ -7,7 +7,7 @@ import doobie.implicits.*
 import pl.msitko.realworld.Entities.UserBody
 import pl.msitko.realworld.{Entities, ExampleResponses, JWT, JwtConfig}
 import pl.msitko.realworld.db.{UserNoId, UserRepo}
-import pl.msitko.realworld.endpoints.UserEndpoints
+import pl.msitko.realworld.endpoints.{ErrorInfo, UserEndpoints}
 import sttp.model.StatusCode
 import sttp.tapir.server.ServerEndpoint
 
@@ -16,8 +16,10 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
 class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
+  val userEndpoints = new UserEndpoints(jwtConfig)
+
   val authenticationImpl =
-    UserEndpoints.authentication.serverLogic { reqBody =>
+    userEndpoints.authentication.serverLogic { reqBody =>
       val encodedPassword = reqBody.user.password
       for {
         authenticated <- repo.authenticate(reqBody.user.email, encodedPassword)
@@ -30,7 +32,7 @@ class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
     }
 
   val registrationImpl =
-    UserEndpoints.registration.serverLogicSuccess { reqBody =>
+    userEndpoints.registration.serverLogicSuccess { reqBody =>
       val user            = reqBody.user
       val encodedPassword = reqBody.user.password
       for {
@@ -40,10 +42,17 @@ class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
     }
 
   val getCurrentUserImpl =
-    UserEndpoints.getCurrentUser.serverLogicSuccess(_ => IO.pure(ExampleResponses.userBody))
+    userEndpoints.getCurrentUser.serverLogic { userId => _ =>
+      repo.getById(userId).flatMap {
+        case Some(user) =>
+          IO.pure(Right(UserBody.fromDB(user, JWT.generateJwtToken(user.id.toString, jwtConfig))))
+        case None =>
+          IO.pure(Left(ErrorInfo.NotFound))
+      }
+    }
 
   val updateUserImpl =
-    UserEndpoints.updateUser.serverLogicSuccess(_ => IO.pure(ExampleResponses.userBody))
+    userEndpoints.updateUser.serverLogicSuccess(_ => _ => IO.pure(ExampleResponses.userBody))
 
   val services = List(
     authenticationImpl,
