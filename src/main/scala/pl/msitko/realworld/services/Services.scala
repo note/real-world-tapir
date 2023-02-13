@@ -9,11 +9,11 @@ import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics
 import sttp.tapir.swagger.bundle.SwaggerInterpreter
 
-class Services(articleServices: ArticleServices, userServices: UserServices):
+class Services(articleServices: ArticleServices, userServices: UserServices, profileServices: ProfileServices):
   import Services.*
 
   val apiServices: List[ServerEndpoint[Any, IO]] =
-    articleServices.services ++ ProfileServices.services ++ TagServices.services ++ userServices.services
+    articleServices.services ++ profileServices.services ++ TagServices.services ++ userServices.services
 
   val docEndpoints: List[ServerEndpoint[Any, IO]] = SwaggerInterpreter()
     .fromServerEndpoints[IO](apiServices, "real-world", "1.0.0")
@@ -32,4 +32,6 @@ object Services:
     val userServices =
       val userRepo = new UserRepo(transactor)
       new UserServices(userRepo, appConfig.jwt)
-    new Services(articleServices, userServices)
+    val profileServices = new ProfileServices(appConfig.jwt)
+
+    new Services(articleServices, userServices, profileServices)

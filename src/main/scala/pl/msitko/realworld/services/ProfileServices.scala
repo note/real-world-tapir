@@ -1,19 +1,26 @@
 package pl.msitko.realworld.services
 
 import cats.effect.IO
-import pl.msitko.realworld.ExampleResponses
+import pl.msitko.realworld.{ExampleResponses, JwtConfig}
 import pl.msitko.realworld.endpoints.ProfileEndpoints
 
-object ProfileServices:
+class ProfileServices(jwtConfig: JwtConfig):
+  private val profileEndpoints = new ProfileEndpoints(jwtConfig)
+
   val getProfileImpl =
-    ProfileEndpoints.getProfile.serverLogicSuccess(profileName => IO.pure(ExampleResponses.profileBody(profileName)))
+    profileEndpoints.getProfile.serverLogicSuccess { userIdOpt => profileName =>
+      IO.pure(ExampleResponses.profileBody(profileName))
+    }
 
   val followProfileImpl =
-    ProfileEndpoints.followProfile.serverLogicSuccess(profileName => IO.pure(ExampleResponses.profileBody(profileName)))
+    profileEndpoints.followProfile.serverLogicSuccess { userId => profileName =>
+      IO.pure(ExampleResponses.profileBody(profileName))
+    }
 
   val unfollowProfileImpl =
-    ProfileEndpoints.unfollowProfile.serverLogicSuccess(profileName =>
-      IO.pure(ExampleResponses.profileBody(profileName)))
+    profileEndpoints.unfollowProfile.serverLogicSuccess { userId => profileName =>
+      IO.pure(ExampleResponses.profileBody(profileName))
+    }
 
   val services = List(
     getProfileImpl,

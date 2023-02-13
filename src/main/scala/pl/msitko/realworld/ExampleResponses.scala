@@ -5,15 +5,6 @@ import cats.implicits.*
 import java.time.Instant
 
 object ExampleResponses:
-  val user: Entities.User = Entities.User(
-    email = "a@example.com",
-    token = "abc",
-    username = "user",
-    bio = None,
-    image = None
-  )
-  val userBody: Entities.UserBody = user.body
-
   def profile(username: String) =
     Entities.Profile(
       username = username,
