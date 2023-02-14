@@ -2,8 +2,7 @@ package pl.msitko.realworld.endpoints
 
 import cats.implicits.*
 import cats.effect.IO
-import pl.msitko.realworld.{db, JWT, JwtConfig}
-import pl.msitko.realworld.db.UserRepo
+import pl.msitko.realworld.{JWT, JwtConfig}
 import sttp.model.StatusCode
 import sttp.tapir.*
 

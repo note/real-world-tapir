@@ -2,7 +2,6 @@ package pl.msitko.realworld.services
 
 import cats.data.EitherT
 import cats.effect.IO
-import cats.syntax.all.*
 import com.typesafe.scalalogging.StrictLogging
 import pl.msitko.realworld.Entities.UserBody
 import pl.msitko.realworld.{Entities, JWT, JwtConfig}

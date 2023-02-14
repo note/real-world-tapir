@@ -4,8 +4,6 @@ import cats.effect.IO
 import doobie.*
 import doobie.implicits.*
 import doobie.postgres.implicits.*
-import doobie.implicits.legacy.instant.*
-import pl.msitko.realworld.Entities.UserBody
 
 import java.util.UUID
 

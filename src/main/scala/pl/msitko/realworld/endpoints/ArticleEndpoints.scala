@@ -1,17 +1,12 @@
 package pl.msitko.realworld.endpoints
 
-import cats.effect.IO
 import io.circe.generic.auto.*
-import io.circe.{Decoder, Encoder}
-import pl.msitko.realworld.{db, JwtConfig}
+import pl.msitko.realworld.JwtConfig
 import pl.msitko.realworld.Entities.*
 import sttp.model.StatusCode
 import sttp.tapir.*
 import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.*
-import sttp.tapir.server.PartialServerEndpoint
-
-import java.util.UUID
 
 class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig):
   val listArticles = endpoint.get

@@ -4,7 +4,6 @@ import cats.effect.IO
 import doobie.util.transactor.Transactor
 import pl.msitko.realworld.AppConfig
 import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, UserRepo}
-import pl.msitko.realworld.services.{ArticleServices, ProfileServices, TagServices, UserServices}
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics
 import sttp.tapir.swagger.bundle.SwaggerInterpreter

@@ -3,7 +3,7 @@ package pl.msitko.realworld.services
 import cats.effect.IO
 import pl.msitko.realworld.Entities.{ArticleBody, Comment, CommentBody, Comments}
 import pl.msitko.realworld.db
-import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FullArticle, FullComment}
+import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FullArticle}
 import pl.msitko.realworld.{Entities, JwtConfig}
 import pl.msitko.realworld.endpoints.{ArticleEndpoints, ErrorInfo}
 
@@ -77,7 +77,7 @@ class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtCon
     }
 
   val deleteCommentImpl =
-    articleEndpoints.deleteComment.serverLogic { userId => (slug, commentId) =>
+    articleEndpoints.deleteComment.serverLogic { userId => (_, commentId) =>
       for {
         commentOpt <- commentRepo.getForCommentId(commentId, userId)
         res <- commentOpt match
@@ -174,18 +174,6 @@ class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtCon
           IO.pure(Left(ErrorInfo.NotFound))
     } yield res
 
-  private def withArticleAnon[T](slug: String)(
-      fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
-    withArticleOpt(slug, None)(fn)
-
-  // TODO: rename
-  private def withArticleAnon2[T](slug: String)(fn: db.FullArticle => T): IO[Either[ErrorInfo, T]] =
-    withArticleOpt2(slug, None)(fn)
-
   private def withArticle[T](slug: String, subjectUserId: UUID)(
       fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =
     withArticleOpt(slug, Some(subjectUserId))(fn)
-
-  // TODO: rename
-  private def withArticle2[T](slug: String, subjectUserId: UUID)(fn: db.FullArticle => T): IO[Either[ErrorInfo, T]] =
-    withArticleOpt2(slug, Some(subjectUserId))(fn)
