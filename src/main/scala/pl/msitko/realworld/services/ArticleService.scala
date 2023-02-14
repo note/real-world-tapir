@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
-class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo):
+class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo):
   def getArticle(userIdOpt: Option[UUID])(slug: String): IO[Either[ErrorInfo, ArticleBody]] =
     withArticleOpt2(slug, userIdOpt)(dbArticle => ArticleBody.fromDB(dbArticle))
 

@@ -9,7 +9,7 @@ import pl.msitko.realworld.endpoints.ErrorInfo
 
 import java.util.UUID
 
-class ProfileServices(followRepo: FollowRepo, userRepo: UserRepo):
+class ProfileService(followRepo: FollowRepo, userRepo: UserRepo):
   private val userHelper = UserServicesHelper.fromRepo(userRepo)
 
   def getProfile(userIdOpt: Option[UUID])(profileName: String): IO[Either[ErrorInfo, ProfileBody]] =

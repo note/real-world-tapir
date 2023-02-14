@@ -12,7 +12,7 @@ import sttp.model.StatusCode
 
 import java.util.UUID
 
-class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
+class UserService(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   private val helper = UserServicesHelper.fromRepo(repo)
 
   def authentication(reqBody: AuthenticationReqBody) =

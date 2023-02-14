@@ -21,16 +21,16 @@ object Services:
     val followRepo  = new FollowRepo(transactor)
 
     val articleEndpoints     = new ArticleEndpoints(appConfig.jwt)
-    val articleServices      = new ArticleServices(articleRepo, commentRepo)
-    val articleEndpointsImpl = ArticleWiring.enpoints(articleEndpoints, articleServices)
+    val articleService       = new ArticleService(articleRepo, commentRepo)
+    val articleEndpointsImpl = ArticleWiring.enpoints(articleEndpoints, articleService)
 
     val profileEndpoints     = new ProfileEndpoints(appConfig.jwt)
-    val profileServices      = new ProfileServices(followRepo, userRepo)
-    val profileEndpointsImpl = ProfileWiring.endpoints(profileEndpoints, profileServices)
+    val profileService       = new ProfileService(followRepo, userRepo)
+    val profileEndpointsImpl = ProfileWiring.endpoints(profileEndpoints, profileService)
 
     val userEndpoints     = new UserEndpoints(appConfig.jwt)
-    val userServices      = new UserServices(userRepo, appConfig.jwt)
-    val userEndpointsImpl = UserWiring.endpoints(userEndpoints, userServices)
+    val userService       = new UserService(userRepo, appConfig.jwt)
+    val userEndpointsImpl = UserWiring.endpoints(userEndpoints, userService)
 
     val apiServices: List[ServerEndpoint[Any, IO]] =
       articleEndpointsImpl ++ profileEndpointsImpl ++ userEndpointsImpl ++ TagWiring.endpoints

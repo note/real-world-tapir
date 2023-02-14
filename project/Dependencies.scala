@@ -22,6 +22,8 @@ object Dependencies {
 	)
 
 	val testDeps    = Seq(
-		"org.scalameta" %% "munit" % "0.7.29" % Test
+		"com.dimafeng"  %% "testcontainers-scala-postgresql" % "0.40.12"  % Test,
+		"com.dimafeng"  %% "testcontainers-scala-munit"      % "0.40.12"  % Test,
+		"org.scalameta" %% "munit" 													 % "0.7.29" 	% Test
 	)
 }
