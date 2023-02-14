@@ -7,45 +7,8 @@ import doobie.postgres.implicits.*
 import doobie.implicits.legacy.instant.*
 
 import java.util.UUID
-import java.time.Instant
-
-final case class CommentNoId(
-    authorId: UUID,
-    articleId: UUID,
-    body: String,
-    createdAt: Instant,
-    updatedAt: Instant,
-)
-
-final case class Comment(
-    id: Int,
-    authorId: UUID,
-    articleId: UUID,
-    body: String,
-    createdAt: Instant,
-    updatedAt: Instant,
-)
-
-final case class FullComment(
-    comment: Comment,
-    author: Author
-)
 
 class CommentRepo(transactor: Transactor[IO]):
-  implicit val fullCommentRead: Read[FullComment] =
-    Read[(Int, UUID, UUID, String, Instant, Instant, String, Option[String], Option[String], Option[Int])].map {
-      case (id, authorId, articleId, body, createdAt, updatedAt, username, bio, authorImage, following) =>
-        val comment = Comment(
-          id = id,
-          authorId = authorId,
-          articleId = articleId,
-          body = body,
-          createdAt = createdAt,
-          updatedAt = updatedAt)
-        val author = Author(username = username, bio = bio, image = authorImage, following = following.isDefined)
-        FullComment(comment, author)
-    }
-
   def insert(comment: CommentNoId): IO[Comment] =
     sql"""INSERT INTO comments (author_id, article_id, body, created_at, updated_at)
          |VALUES (${comment.authorId}, ${comment.articleId}, ${comment.body}, ${comment.createdAt}, ${comment.updatedAt})
