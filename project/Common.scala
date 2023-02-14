@@ -10,7 +10,7 @@ object Common {
       organization := "pl.msitko",
       version := versionArg,
 
-      scalaVersion := "3.2.2",
+      scalaVersion := "3.3.0-RC2",
       scalafmtOnCompile := true,
 
       // TODO: otherwise getting "method schemaForCaseClass is declared as `inline`, but was not inlined"

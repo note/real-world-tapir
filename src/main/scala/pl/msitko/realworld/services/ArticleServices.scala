@@ -13,7 +13,7 @@ import java.time.Instant
 import java.util.UUID
 
 class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtConfig: JwtConfig):
-  val articleEndpoints = new ArticleEndpoints(jwtConfig)
+  private val articleEndpoints = new ArticleEndpoints(jwtConfig)
 
   val listArticlesImpl =
     articleEndpoints.listArticles.serverLogicSuccess(_ => IO.pure(Entities.Articles(articles = List.empty)))

@@ -8,7 +8,7 @@ import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 
 import java.time.Instant
 import java.util.UUID
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 final case class JWTContent(
     userId: String

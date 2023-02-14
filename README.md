@@ -13,7 +13,7 @@ PostgreSQL used for persistence
 
 # Development
 
-To spin up local PostgreSQL instance:
+To spin up a local PostgreSQL instance:
 
 ```bash
 docker-compose up -d

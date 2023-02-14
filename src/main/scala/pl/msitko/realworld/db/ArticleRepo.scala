@@ -8,7 +8,6 @@ import doobie.implicits.legacy.instant.*
 
 import java.time.Instant
 import java.util.UUID
-import javax.swing.plaf.SliderUI
 
 final case class ArticleNoId(
     slug: String,

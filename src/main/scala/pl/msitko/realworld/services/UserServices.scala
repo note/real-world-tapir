@@ -7,15 +7,11 @@ import com.typesafe.scalalogging.StrictLogging
 import pl.msitko.realworld.Entities.UserBody
 import pl.msitko.realworld.{Entities, JWT, JwtConfig}
 import pl.msitko.realworld.db
-import pl.msitko.realworld.db.{FullUser, UpdateUser, User, UserNoId, UserRepo}
+import pl.msitko.realworld.db.UserRepo
 import pl.msitko.realworld.endpoints.{ErrorInfo, UserEndpoints}
 import sttp.model.StatusCode
-import sttp.tapir.server.ServerEndpoint
 
-import java.security.SecureRandom
 import java.util.UUID
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
 
 class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   val userEndpoints = new UserEndpoints(jwtConfig)
@@ -40,7 +36,7 @@ class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
       val encodedPassword = reqBody.user.password
       for {
         inserted <- repo.insert(
-          UserNoId(email = user.email, username = user.username, bio = user.bio, image = user.image),
+          db.UserNoId(email = user.email, username = user.username, bio = user.bio, image = user.image),
           encodedPassword)
         httpUser = UserBody.fromDB(inserted, JWT.generateJwtToken(inserted.id.toString, jwtConfig))
       } yield httpUser
@@ -81,7 +77,7 @@ trait UserServicesHelper:
 object UserServicesHelper:
   def fromRepo(userRepo: UserRepo): UserServicesHelper =
     new UserServicesHelper:
-      override def getById(userId: UUID, subjectUserId: UUID): Result[FullUser] =
+      override def getById(userId: UUID, subjectUserId: UUID): Result[db.FullUser] =
         EitherT(userRepo.getById(userId, subjectUserId).map {
           case Some(user) => Right(user)
           case None       => Left(ErrorInfo.NotFound)
@@ -93,5 +89,5 @@ object UserServicesHelper:
           case None       => Left(ErrorInfo.NotFound)
         })
 
-      override def updateUser(updateObj: UpdateUser, userId: UUID): Result[Unit] =
+      override def updateUser(updateObj: db.UpdateUser, userId: UUID): Result[Unit] =
         EitherT(userRepo.updateUser(updateObj, userId).map(_ => Right(())))

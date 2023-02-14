@@ -2,14 +2,9 @@ package pl.msitko.realworld
 
 import cats.effect.{ExitCode, IO, IOApp}
 import doobie.Transactor
-import doobie.util.transactor.Transactor
-import org.flywaydb.core.Flyway
-import org.flywaydb.core.api.output.MigrateResult
-import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import pl.msitko.realworld.services.Services
-import pureconfig.ConfigSource
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 
 object Main extends IOApp:
@@ -40,7 +35,7 @@ object Main extends IOApp:
         .bindHttp(appConfig.server.port, appConfig.server.host)
         .withHttpApp(Router("/" -> routes(services)).orNotFound)
         .resource
-        .use { server =>
+        .use { _ =>
           for {
             _ <- IO.println(
               s"Go to http://${appConfig.server.host}:${appConfig.server.port}/docs to open SwaggerUI. Press ENTER key to exit.")
