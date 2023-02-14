@@ -3,70 +3,54 @@ package pl.msitko.realworld.services
 import cats.data.EitherT
 import cats.effect.IO
 import com.typesafe.scalalogging.StrictLogging
-import pl.msitko.realworld.Entities.UserBody
+import pl.msitko.realworld.Entities.{AuthenticationReqBody, RegistrationReqBody, UpdateUserReqBody, UserBody}
 import pl.msitko.realworld.{Entities, JWT, JwtConfig}
 import pl.msitko.realworld.db
 import pl.msitko.realworld.db.UserRepo
-import pl.msitko.realworld.endpoints.{ErrorInfo, UserEndpoints}
+import pl.msitko.realworld.endpoints.ErrorInfo
 import sttp.model.StatusCode
 
 import java.util.UUID
 
 class UserServices(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
-  val userEndpoints = new UserEndpoints(jwtConfig)
-  val helper        = UserServicesHelper.fromRepo(repo)
+  private val helper = UserServicesHelper.fromRepo(repo)
 
-  val authenticationImpl =
-    userEndpoints.authentication.serverLogic { reqBody =>
-      val encodedPassword = reqBody.user.password
-      for {
-        authenticated <- repo.authenticate(reqBody.user.email, encodedPassword)
-        response = authenticated match
-          case Some(user) =>
-            Right(UserBody.fromDB(user, JWT.generateJwtToken(user.id.toString, jwtConfig)))
-          case None =>
-            Left(StatusCode.Forbidden)
-      } yield response
-    }
-
-  val registrationImpl =
-    userEndpoints.registration.serverLogicSuccess { reqBody =>
-      val user            = reqBody.user
-      val encodedPassword = reqBody.user.password
-      for {
-        inserted <- repo.insert(
-          db.UserNoId(email = user.email, username = user.username, bio = user.bio, image = user.image),
-          encodedPassword)
-        httpUser = UserBody.fromDB(inserted, JWT.generateJwtToken(inserted.id.toString, jwtConfig))
-      } yield httpUser
-    }
-
-  val getCurrentUserImpl =
-    userEndpoints.getCurrentUser.serverLogic { userId => _ =>
-      repo.getById(userId, userId).flatMap {
+  def authentication(reqBody: AuthenticationReqBody) =
+    val encodedPassword = reqBody.user.password
+    for {
+      authenticated <- repo.authenticate(reqBody.user.email, encodedPassword)
+      response = authenticated match
         case Some(user) =>
-          IO.pure(Right(UserBody.fromDB(user.user, JWT.generateJwtToken(user.user.id.toString, jwtConfig))))
+          Right(UserBody.fromDB(user, JWT.generateJwtToken(user.id.toString, jwtConfig)))
         case None =>
-          IO.pure(Left(ErrorInfo.NotFound))
-      }
+          Left(StatusCode.Forbidden)
+    } yield response
+
+  def registration(reqBody: RegistrationReqBody): IO[UserBody] =
+    val user            = reqBody.user
+    val encodedPassword = reqBody.user.password
+    for {
+      inserted <- repo.insert(
+        db.UserNoId(email = user.email, username = user.username, bio = user.bio, image = user.image),
+        encodedPassword)
+      httpUser = UserBody.fromDB(inserted, JWT.generateJwtToken(inserted.id.toString, jwtConfig))
+    } yield httpUser
+
+  def getCurrentUser(userId: UUID): IO[Either[ErrorInfo.NotFound.type, UserBody]] =
+    repo.getById(userId, userId).flatMap {
+      case Some(user) =>
+        IO.pure(Right(UserBody.fromDB(user.user, JWT.generateJwtToken(user.user.id.toString, jwtConfig))))
+      case None =>
+        IO.pure(Left(ErrorInfo.NotFound))
     }
 
-  val updateUserImpl =
-    userEndpoints.updateUser.serverLogic { userId => reqBody =>
-      (for {
-        existingUser <- helper.getById(userId, userId)
-        updateObj = reqBody.toDB(existingUser.user)
-        _           <- helper.updateUser(updateObj, userId)
-        updatedUser <- helper.getById(userId, userId)
-      } yield UserBody.fromDB(updatedUser.user, JWT.generateJwtToken(userId.toString, jwtConfig))).value
-    }
-
-  val services = List(
-    authenticationImpl,
-    registrationImpl,
-    getCurrentUserImpl,
-    updateUserImpl,
-  )
+  def updateUser(userId: UUID)(reqBody: UpdateUserReqBody): IO[Either[ErrorInfo, UserBody]] =
+    (for {
+      existingUser <- helper.getById(userId, userId)
+      updateObj = reqBody.toDB(existingUser.user)
+      _           <- helper.updateUser(updateObj, userId)
+      updatedUser <- helper.getById(userId, userId)
+    } yield UserBody.fromDB(updatedUser.user, JWT.generateJwtToken(userId.toString, jwtConfig))).value
 
 trait UserServicesHelper:
   def getById(userId: UUID, subjectUserId: UUID): Result[db.FullUser]

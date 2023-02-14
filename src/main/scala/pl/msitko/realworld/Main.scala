@@ -5,19 +5,20 @@ import doobie.Transactor
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.Router
 import pl.msitko.realworld.services.Services
+import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 
 object Main extends IOApp:
 
   override def run(args: List[String]): IO[ExitCode] =
-    def routes(services: Services) =
+    def routes(services: List[ServerEndpoint[Any, IO]]) =
       val serverOptions: Http4sServerOptions[IO] =
         Http4sServerOptions
           .customiseInterceptors[IO]
           .metricsInterceptor(Services.prometheusMetrics.metricsInterceptor())
           .options
 
-      Http4sServerInterpreter[IO](serverOptions).toRoutes(services.all)
+      Http4sServerInterpreter[IO](serverOptions).toRoutes(services)
 
     for {
       appConfig <- AppConfig.loadConfig

@@ -1,128 +1,96 @@
 package pl.msitko.realworld.services
 
 import cats.effect.IO
-import pl.msitko.realworld.Entities.{ArticleBody, Comment, CommentBody, Comments}
+import pl.msitko.realworld.Entities.{
+  AddCommentReqBody,
+  ArticleBody,
+  Comment,
+  CommentBody,
+  Comments,
+  CreateArticleReqBody,
+  UpdateArticleReqBody
+}
 import pl.msitko.realworld.db
 import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FullArticle}
-import pl.msitko.realworld.{Entities, JwtConfig}
-import pl.msitko.realworld.endpoints.{ArticleEndpoints, ErrorInfo}
+import pl.msitko.realworld.Entities
+import pl.msitko.realworld.endpoints.ErrorInfo
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
-class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo, jwtConfig: JwtConfig):
-  private val articleEndpoints = new ArticleEndpoints(jwtConfig)
+class ArticleServices(articleRepo: ArticleRepo, commentRepo: CommentRepo):
+  def getArticle(userIdOpt: Option[UUID])(slug: String): IO[Either[ErrorInfo, ArticleBody]] =
+    withArticleOpt2(slug, userIdOpt)(dbArticle => ArticleBody.fromDB(dbArticle))
 
-  val listArticlesImpl =
-    articleEndpoints.listArticles.serverLogicSuccess(_ => IO.pure(Entities.Articles(articles = List.empty)))
+  def createArticle(userId: UUID)(reqBody: CreateArticleReqBody): IO[Either[ErrorInfo, ArticleBody]] =
+    val dbArticle = reqBody.toDB(generateSlug(reqBody.article.title), Instant.now())
+    articleRepo.insert(dbArticle, userId).flatMap(article => getArticleById(article.id, userId))
 
-  val feedArticlesImpl =
-    articleEndpoints.feedArticles.serverLogicSuccess(_ => _ => IO.pure(Entities.Articles(articles = List.empty)))
-
-  val getArticleImpl =
-    articleEndpoints.getArticle.serverLogic { userIdOpt => slug =>
-      withArticleOpt2(slug, userIdOpt)(dbArticle => ArticleBody.fromDB(dbArticle))
+  def updateArticle(userId: UUID)(slug: String, reqBody: UpdateArticleReqBody): IO[Either[ErrorInfo, ArticleBody]] =
+    withOwnedArticle(userId, slug) { existingArticle =>
+      val changeObj = reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle.article)
+      // This getArticleById is a bit lazy, we could avoid another DB query by composing existing and changeObj
+      articleRepo
+        .update(changeObj, existingArticle.article.id)
+        .flatMap(_ => getArticleById(existingArticle.article.id, userId))
     }
 
-  val createArticleImpl =
-    articleEndpoints.createArticle.serverLogic { userId => reqBody =>
-      val dbArticle = reqBody.toDB(generateSlug(reqBody.article.title), Instant.now())
-      articleRepo.insert(dbArticle, userId).flatMap(article => getArticleById(article.id, userId))
+  def deleteArticle(userId: UUID)(slug: String): IO[Either[ErrorInfo, Unit]] =
+    withOwnedArticle(userId, slug) { _ =>
+      articleRepo.delete(slug).map(_ => Right(()))
     }
 
-  val updateArticleImpl =
-    articleEndpoints.updateArticle.serverLogic { userId => (slug, reqBody) =>
-      withOwnedArticle(userId, slug) { existingArticle =>
-        val changeObj = reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle.article)
-        // This getArticleById is a bit lazy, we could avoid another DB query by composing existing and changeObj
-        articleRepo
-          .update(changeObj, existingArticle.article.id)
-          .flatMap(_ => getArticleById(existingArticle.article.id, userId))
-      }
-    }
+  def addComment(userId: UUID)(slug: String, reqBody: AddCommentReqBody): IO[Either[ErrorInfo, CommentBody]] =
+    withArticle(slug, userId) { article =>
+      val comment = reqBody.toDB(userId, article.article.id, Instant.now)
 
-  val deleteArticleImpl =
-    articleEndpoints.deleteArticle.serverLogic { userId => slug =>
-      withOwnedArticle(userId, slug) { _ =>
-        articleRepo.delete(slug).map(_ => Right(()))
-      }
-    }
-
-  val addCommentImpl =
-    articleEndpoints.addComment.serverLogic { userId => (slug, reqBody) =>
-      withArticle(slug, userId) { article =>
-        val comment = reqBody.toDB(userId, article.article.id, Instant.now)
-
-        for {
-          inserted   <- commentRepo.insert(comment)
-          commentOpt <- commentRepo.getForCommentId(inserted.id, userId)
-          res <- commentOpt match
-            case Some(comment) =>
-              IO.pure(Right(CommentBody.fromDB(comment)))
-            case None =>
-              IO.pure(Left(ErrorInfo.NotFound))
-        } yield res
-      }
-    }
-
-  val getCommentsImpl =
-    articleEndpoints.getComments.serverLogic { userIdOpt => slug =>
-      withArticleOpt(slug, userIdOpt) { article =>
-        commentRepo
-          .getForArticleId(article.article.id, userIdOpt)
-          .map(dbComments => Right(Comments(dbComments.map(Comment.fromDB))))
-      }
-    }
-
-  val deleteCommentImpl =
-    articleEndpoints.deleteComment.serverLogic { userId => (_, commentId) =>
       for {
-        commentOpt <- commentRepo.getForCommentId(commentId, userId)
+        inserted   <- commentRepo.insert(comment)
+        commentOpt <- commentRepo.getForCommentId(inserted.id, userId)
         res <- commentOpt match
-          case Some(comment) if comment.comment.authorId == userId =>
-            commentRepo.delete(commentId).map(_ => Right(()))
           case Some(comment) =>
-            IO.pure(Left(ErrorInfo.Unauthorized))
+            IO.pure(Right(CommentBody.fromDB(comment)))
           case None =>
             IO.pure(Left(ErrorInfo.NotFound))
       } yield res
     }
 
-  val favoriteArticleImpl =
-    articleEndpoints.favoriteArticle.serverLogic { userId => slug =>
-      withArticle(slug, userId) { article =>
-        val articleBody = ArticleBody.fromDB(article)
-        val updatedArticle = articleBody.copy(article =
-          articleBody.article.copy(favorited = true, favoritesCount = articleBody.article.favoritesCount + 1))
-        articleRepo.insertFavorite(article.article.id, userId).map(_ => Right(updatedArticle))
-      }
+  def getComments(userIdOpt: Option[UUID])(slug: String): IO[Either[ErrorInfo, Comments]] =
+    withArticleOpt(slug, userIdOpt) { article =>
+      commentRepo
+        .getForArticleId(article.article.id, userIdOpt)
+        .map(dbComments => Right(Comments(dbComments.map(Comment.fromDB))))
     }
 
-  val unfavoriteArticleImpl =
-    articleEndpoints.unfavoriteArticle.serverLogic { userId => slug =>
-      withArticle(slug, userId) { article =>
-        for {
-          _              <- articleRepo.deleteFavorite(article.article.id, userId)
-          updatedArticle <- getArticleById(article.article.id, userId)
-        } yield updatedArticle
-      }
+  def deleteComment(userId: UUID)(commentId: Int): IO[Either[ErrorInfo, Unit]] =
+    for {
+      commentOpt <- commentRepo.getForCommentId(commentId, userId)
+      res <- commentOpt match
+        case Some(comment) if comment.comment.authorId == userId =>
+          commentRepo.delete(commentId).map(_ => Right(()))
+        case Some(comment) =>
+          IO.pure(Left(ErrorInfo.Unauthorized))
+        case None =>
+          IO.pure(Left(ErrorInfo.NotFound))
+    } yield res
+
+  def favoriteArticle(userId: UUID)(slug: String): IO[Either[ErrorInfo, ArticleBody]] =
+    withArticle(slug, userId) { article =>
+      val articleBody = ArticleBody.fromDB(article)
+      val updatedArticle = articleBody.copy(article =
+        articleBody.article.copy(favorited = true, favoritesCount = articleBody.article.favoritesCount + 1))
+      articleRepo.insertFavorite(article.article.id, userId).map(_ => Right(updatedArticle))
     }
 
-  def services = List(
-    listArticlesImpl,
-    feedArticlesImpl,
-    getArticleImpl,
-    createArticleImpl,
-    updateArticleImpl,
-    deleteArticleImpl,
-    addCommentImpl,
-    getCommentsImpl,
-    deleteCommentImpl,
-    favoriteArticleImpl,
-    unfavoriteArticleImpl,
-  )
+  def unfavoriteArticle(userId: UUID)(slug: String): IO[Either[ErrorInfo, ArticleBody]] =
+    withArticle(slug, userId) { article =>
+      for {
+        _              <- articleRepo.deleteFavorite(article.article.id, userId)
+        updatedArticle <- getArticleById(article.article.id, userId)
+      } yield updatedArticle
+    }
 
   // TODO: Replace with proper implementation
   private def generateSlug(title: String): String =

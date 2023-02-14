@@ -1,51 +1,38 @@
 package pl.msitko.realworld.services
 
 import cats.data.EitherT
+import cats.effect.IO
 import pl.msitko.realworld.Entities.ProfileBody
 import pl.msitko.realworld.db
 import pl.msitko.realworld.db.{Follow, FollowRepo, UserRepo}
-import pl.msitko.realworld.JwtConfig
-import pl.msitko.realworld.endpoints.{ErrorInfo, ProfileEndpoints}
+import pl.msitko.realworld.endpoints.ErrorInfo
 
 import java.util.UUID
 
-class ProfileServices(followRepo: FollowRepo, userRepo: UserRepo, jwtConfig: JwtConfig):
-  private val profileEndpoints = new ProfileEndpoints(jwtConfig)
-  private val userHelper       = UserServicesHelper.fromRepo(userRepo)
+class ProfileServices(followRepo: FollowRepo, userRepo: UserRepo):
+  private val userHelper = UserServicesHelper.fromRepo(userRepo)
 
-  val getProfileImpl =
-    profileEndpoints.getProfile.serverLogic { userIdOpt => profileName =>
-      (for {
-        requestedUserId <- resolveUserName(profileName)
-        user            <- getByUserId(requestedUserId, userIdOpt)
-      } yield ProfileBody.fromDB(user.toAuthor)).value
-    }
+  def getProfile(userIdOpt: Option[UUID])(profileName: String): IO[Either[ErrorInfo, ProfileBody]] =
+    (for {
+      requestedUserId <- resolveUserName(profileName)
+      user            <- getByUserId(requestedUserId, userIdOpt)
+    } yield ProfileBody.fromDB(user.toAuthor)).value
 
-  val followProfileImpl =
-    profileEndpoints.followProfile.serverLogic { userId => profileName =>
-      (for {
-        userIdToFollow <- resolveUserName(profileName)
-        update = db.Follow(follower = userId, followed = userIdToFollow)
-        _    <- insertFollow(update)
-        user <- userHelper.getById(userIdToFollow, subjectUserId = userId)
-      } yield ProfileBody.fromDB(user.toAuthor)).value
-    }
+  def followProfile(userId: UUID)(profileName: String): IO[Either[ErrorInfo, ProfileBody]] =
+    (for {
+      userIdToFollow <- resolveUserName(profileName)
+      update = db.Follow(follower = userId, followed = userIdToFollow)
+      _    <- insertFollow(update)
+      user <- userHelper.getById(userIdToFollow, subjectUserId = userId)
+    } yield ProfileBody.fromDB(user.toAuthor)).value
 
-  val unfollowProfileImpl =
-    profileEndpoints.unfollowProfile.serverLogic { userId => profileName =>
-      (for {
-        userIdToFollow <- resolveUserName(profileName)
-        update = db.Follow(follower = userId, followed = userIdToFollow)
-        _    <- deleteFollow(update)
-        user <- userHelper.getById(userIdToFollow, subjectUserId = userId)
-      } yield ProfileBody.fromDB(user.toAuthor)).value
-    }
-
-  val services = List(
-    getProfileImpl,
-    followProfileImpl,
-    unfollowProfileImpl,
-  )
+  def unfollowProfile(userId: UUID)(profileName: String): IO[Either[ErrorInfo, ProfileBody]] =
+    (for {
+      userIdToFollow <- resolveUserName(profileName)
+      update = db.Follow(follower = userId, followed = userIdToFollow)
+      _    <- deleteFollow(update)
+      user <- userHelper.getById(userIdToFollow, subjectUserId = userId)
+    } yield ProfileBody.fromDB(user.toAuthor)).value
 
   private def resolveUserName(username: String): Result[UUID] =
     EitherT(userRepo.resolveUsername(username).map {
