@@ -1,9 +1,11 @@
 package pl.msitko.realworld.services
 
+import cats.data.NonEmptyList
 import cats.effect.IO
 import pl.msitko.realworld.Entities.{
   AddCommentReqBody,
   ArticleBody,
+  Articles,
   Comment,
   CommentBody,
   Comments,
@@ -11,7 +13,7 @@ import pl.msitko.realworld.Entities.{
   UpdateArticleReqBody
 }
 import pl.msitko.realworld.db
-import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FullArticle}
+import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, FullArticle}
 import pl.msitko.realworld.Entities
 import pl.msitko.realworld.endpoints.ErrorInfo
 
@@ -20,7 +22,17 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
-class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo):
+class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo, followRepo: FollowRepo):
+  def feedArticles(userId: UUID): IO[Articles] =
+    for {
+      followed <- followRepo.getFollowedByUser(userId)
+      r <- NonEmptyList.fromList(followed) match
+        case Some(followedNel) =>
+          articleRepo.feed(userId, followedNel)
+        case None =>
+          IO.pure(List.empty[FullArticle])
+    } yield Articles(r.map(Entities.Article.fromDB))
+
   def getArticle(userIdOpt: Option[UUID])(slug: String): IO[Either[ErrorInfo, ArticleBody]] =
     withArticleOpt2(slug, userIdOpt)(dbArticle => ArticleBody.fromDB(dbArticle))
 

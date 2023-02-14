@@ -117,18 +117,7 @@ object Entities:
   final case class ArticleBody(article: Article)
   object ArticleBody:
     def fromDB(dbArticle: db.FullArticle): ArticleBody =
-      ArticleBody(article = Entities.Article(
-        slug = dbArticle.article.slug,
-        title = dbArticle.article.title,
-        description = dbArticle.article.description,
-        body = dbArticle.article.body,
-        tagList = dbArticle.tags, // TODO: implement it
-        createdAt = dbArticle.article.createdAt,
-        updatedAt = dbArticle.article.updatedAt,
-        favorited = dbArticle.favorited.isDefined,              // TODO: implement it
-        favoritesCount = dbArticle.favoritesCount.getOrElse(0), // TODO: implement it
-        author = Profile.fromDB(dbArticle.author)
-      ))
+      ArticleBody(article = Article.fromDB(dbArticle))
 
   final case class Article(
       slug: String,
@@ -143,6 +132,21 @@ object Entities:
       author: Profile,
   ):
     def toBody: ArticleBody = ArticleBody(article = this)
+
+  object Article:
+    def fromDB(dbArticle: db.FullArticle): Article =
+      Entities.Article(
+        slug = dbArticle.article.slug,
+        title = dbArticle.article.title,
+        description = dbArticle.article.description,
+        body = dbArticle.article.body,
+        tagList = dbArticle.tags, // TODO: implement it
+        createdAt = dbArticle.article.createdAt,
+        updatedAt = dbArticle.article.updatedAt,
+        favorited = dbArticle.favorited.isDefined,              // TODO: implement it
+        favoritesCount = dbArticle.favoritesCount.getOrElse(0), // TODO: implement it
+        author = Profile.fromDB(dbArticle.author)
+      )
 
   final case class CreateArticleReq(title: String, description: String, body: String, tagList: List[String])
 

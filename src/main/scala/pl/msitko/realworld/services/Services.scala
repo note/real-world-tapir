@@ -21,7 +21,7 @@ object Services:
     val followRepo  = new FollowRepo(transactor)
 
     val articleEndpoints     = new ArticleEndpoints(appConfig.jwt)
-    val articleService       = new ArticleService(articleRepo, commentRepo)
+    val articleService       = new ArticleService(articleRepo, commentRepo, followRepo)
     val articleEndpointsImpl = ArticleWiring.enpoints(articleEndpoints, articleService)
 
     val profileEndpoints     = new ProfileEndpoints(appConfig.jwt)

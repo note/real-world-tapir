@@ -17,3 +17,6 @@ class FollowRepo(transactor: Transactor[IO]):
   def delete(follow: Follow): IO[Int] =
     sql"DELETE FROM followers WHERE follower=${follow.follower} AND followed=${follow.followed}".update.run
       .transact(transactor)
+
+  def getFollowedByUser(userId: UUID): IO[List[UUID]] =
+    sql"SELECT followed FROM followers WHERE follower=${userId}".query[UUID].to[List].transact(transactor)

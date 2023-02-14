@@ -26,15 +26,15 @@ class UserService(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
           Left(StatusCode.Forbidden)
     } yield response
 
-  def registration(reqBody: RegistrationReqBody): IO[UserBody] =
+  def registration(reqBody: RegistrationReqBody): IO[(db.User, String)] =
     val user            = reqBody.user
     val encodedPassword = reqBody.user.password
     for {
       inserted <- repo.insert(
         db.UserNoId(email = user.email, username = user.username, bio = user.bio, image = user.image),
         encodedPassword)
-      httpUser = UserBody.fromDB(inserted, JWT.generateJwtToken(inserted.id.toString, jwtConfig))
-    } yield httpUser
+
+    } yield inserted -> JWT.generateJwtToken(inserted.id.toString, jwtConfig)
 
   def getCurrentUser(userId: UUID): IO[Either[ErrorInfo.NotFound.type, UserBody]] =
     repo.getById(userId, userId).flatMap {

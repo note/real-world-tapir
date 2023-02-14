@@ -10,7 +10,7 @@ object ArticleWiring:
   def enpoints(articleEndpoints: ArticleEndpoints, service: ArticleService): List[ServerEndpoint[Any, IO]] =
     List(
       articleEndpoints.listArticles.serverLogicSuccess(_ => IO.pure(Entities.Articles(articles = List.empty))),
-      articleEndpoints.feedArticles.serverLogicSuccess(_ => _ => IO.pure(Entities.Articles(articles = List.empty))),
+      articleEndpoints.feedArticles.serverLogicSuccess(userId => _ => service.feedArticles(userId)),
       articleEndpoints.getArticle.serverLogic(service.getArticle),
       articleEndpoints.createArticle.serverLogic(service.createArticle),
       articleEndpoints.updateArticle.serverLogic(service.updateArticle),
