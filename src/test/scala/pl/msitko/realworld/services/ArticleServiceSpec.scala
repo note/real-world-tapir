@@ -15,7 +15,6 @@ import pl.msitko.realworld.Entities.{
 }
 import pl.msitko.realworld.{DBMigration, JwtConfig}
 
-import java.util.UUID
 import scala.concurrent.duration.*
 
 class ArticleServiceSpec extends CatsEffectSuite with TestContainersFixtures {
