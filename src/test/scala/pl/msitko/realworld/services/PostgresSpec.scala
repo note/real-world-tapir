@@ -42,13 +42,13 @@ trait PostgresSpec extends CatsEffectSuite with TestContainersFixtures:
       )
     )
 
-  def createArticleReqBody(title: String) =
+  def createArticleReqBody(title: String, tags: List[String] = List.empty) =
     CreateArticleReqBody(
       CreateArticleReq(
         title = title,
         description = "some descripion",
         body = "some body",
-        tagList = List.empty
+        tagList = tags
       )
     )
 

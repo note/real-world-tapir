@@ -9,19 +9,19 @@ import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.*
 
 class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig):
-  val listArticles = endpoint.get
+  val listArticles = optionallySecureEndpoint.get
     .in("api" / "articles")
-    .in(query[String]("tag"))
-    .in(query[String]("author"))
-    .in(query[String]("favorited"))
-    .in(query[String]("limit"))
-    .in(query[String]("offset"))
+    .in(query[Option[String]]("tag"))
+    .in(query[Option[String]]("author"))
+    .in(query[Option[String]]("favorited"))
+    .in(query[Option[Int]]("limit"))
+    .in(query[Option[Int]]("offset"))
     .out(jsonBody[Articles])
 
   val feedArticles = secureEndpoint.get
     .in("api" / "articles" / "feed")
-    .in(query[Int]("limit"))
-    .in(query[Int]("offset"))
+    .in(query[Option[Int]]("limit"))
+    .in(query[Option[Int]]("offset"))
     .out(jsonBody[Articles])
 
   val getArticle = optionallySecureEndpoint.get

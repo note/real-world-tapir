@@ -2,7 +2,7 @@ package pl.msitko.realworld.wiring
 
 import cats.effect.IO
 import pl.msitko.realworld.Entities
-import pl.msitko.realworld.db.Pagination
+import pl.msitko.realworld.db.{ArticleQuery, Pagination}
 import pl.msitko.realworld.endpoints.ArticleEndpoints
 import pl.msitko.realworld.services.ArticleService
 import sttp.tapir.server.ServerEndpoint
@@ -10,9 +10,13 @@ import sttp.tapir.server.ServerEndpoint
 object ArticleWiring:
   def enpoints(articleEndpoints: ArticleEndpoints, service: ArticleService): List[ServerEndpoint[Any, IO]] =
     List(
-      articleEndpoints.listArticles.serverLogicSuccess(_ => IO.pure(Entities.Articles(articles = List.empty))),
+      articleEndpoints.listArticles.serverLogicSuccess { userId => (tag, author, favoritedBy, limit, offset) =>
+        val pagination = Pagination.fromReq(limit = limit, offset = offset)
+        val query      = ArticleQuery[String](tag = tag, author = author, favoritedBy = favoritedBy)
+        service.listArticles(userId, query, pagination)
+      },
       articleEndpoints.feedArticles.serverLogicSuccess(userId =>
-        (limit, offset) => service.feedArticles(userId, Pagination(limit = limit, offset = offset))),
+        (limit, offset) => service.feedArticles(userId, Pagination.fromReq(limit = limit, offset = offset))),
       articleEndpoints.getArticle.serverLogic(service.getArticle),
       articleEndpoints.createArticle.serverLogic(service.createArticle),
       articleEndpoints.updateArticle.serverLogic(service.updateArticle),

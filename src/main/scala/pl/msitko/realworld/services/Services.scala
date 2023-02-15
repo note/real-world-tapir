@@ -17,8 +17,8 @@ object Services:
   def apply(transactor: Transactor[IO], appConfig: AppConfig): List[ServerEndpoint[Any, IO]] =
     val repos = Repos.fromTransactor(transactor)
 
-    val articleEndpoints     = new ArticleEndpoints(appConfig.jwt)
-    val articleService       = new ArticleService(repos.articleRepo, repos.commentRepo, repos.followRepo)
+    val articleEndpoints = new ArticleEndpoints(appConfig.jwt)
+    val articleService   = new ArticleService(repos.articleRepo, repos.commentRepo, repos.followRepo, repos.userRepo)
     val articleEndpointsImpl = ArticleWiring.enpoints(articleEndpoints, articleService)
 
     val profileEndpoints     = new ProfileEndpoints(appConfig.jwt)

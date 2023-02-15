@@ -11,7 +11,7 @@ class ArticleFeedServiceSpec extends PostgresSpec:
     val transactor = createTransactor(postgres())
     val repos      = Repos.fromTransactor(transactor)
 
-    val articleService = new ArticleService(repos.articleRepo, repos.commentRepo, repos.followRepo)
+    val articleService = new ArticleService(repos.articleRepo, repos.commentRepo, repos.followRepo, repos.userRepo)
     val followService  = new ProfileService(repos.followRepo, repos.userRepo)
     val userService    = new UserService(repos.userRepo, jwtConfig)
 
@@ -37,7 +37,7 @@ class ArticleFeedServiceSpec extends PostgresSpec:
     val transactor = createTransactor(postgres())
     val repos      = Repos.fromTransactor(transactor)
 
-    val articleService = new ArticleService(repos.articleRepo, repos.commentRepo, repos.followRepo)
+    val articleService = new ArticleService(repos.articleRepo, repos.commentRepo, repos.followRepo, repos.userRepo)
     val followService  = new ProfileService(repos.followRepo, repos.userRepo)
     val userService    = new UserService(repos.userRepo, jwtConfig)
 

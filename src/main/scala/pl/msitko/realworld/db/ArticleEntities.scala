@@ -110,10 +110,20 @@ final case class UpdateArticle(
     body: String,
 )
 
-final case class ArticleQuery(tag: Option[String], author: Option[String], favoritedBy: Option[String]):
+final case class UserCoordinates(username: String, id: UUID)
+
+final case class ArticleQuery[T](
+    tag: Option[String] = None,
+    author: Option[String] = None,
+    favoritedBy: Option[T] = None):
   def allEmpty: Boolean = tag.isEmpty && author.isEmpty && favoritedBy.isEmpty
 
 final case class Pagination(
     offset: Int,
     limit: Int
 )
+object Pagination:
+  private val DefaultOffset = 0
+  private val DefaultLimit  = 20
+  def fromReq(offset: Option[Int], limit: Option[Int]): Pagination =
+    Pagination(offset = offset.getOrElse(DefaultOffset), limit = limit.getOrElse(DefaultLimit))

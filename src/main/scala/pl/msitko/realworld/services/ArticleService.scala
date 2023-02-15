@@ -13,7 +13,16 @@ import pl.msitko.realworld.Entities.{
   UpdateArticleReqBody
 }
 import pl.msitko.realworld.db
-import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, FullArticle, Pagination}
+import pl.msitko.realworld.db.{
+  ArticleQuery,
+  ArticleRepo,
+  CommentRepo,
+  FollowRepo,
+  FullArticle,
+  Pagination,
+  UserCoordinates,
+  UserRepo
+}
 import pl.msitko.realworld.Entities
 import pl.msitko.realworld.endpoints.ErrorInfo
 
@@ -22,7 +31,7 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
-class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo, followRepo: FollowRepo):
+class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo, followRepo: FollowRepo, userRepo: UserRepo):
   def feedArticles(userId: UUID, pagination: Pagination): IO[Articles] =
     for {
       followed <- followRepo.getFollowedByUser(userId)
@@ -32,6 +41,28 @@ class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo, followR
         case None =>
           IO.pure(List.empty[FullArticle])
     } yield Articles(r.map(Entities.Article.fromDB))
+
+  def listArticles(subjectUserId: Option[UUID], query: ArticleQuery[String], pagination: Pagination): IO[Articles] =
+    val resolvedQuery = query.favoritedBy match
+      case Some(username) =>
+        userRepo.resolveUsername(username).map {
+          case Some(favoritedByUserId) =>
+            ArticleQuery[UserCoordinates](
+              tag = query.tag,
+              author = query.author,
+              favoritedBy = Some(UserCoordinates(username, favoritedByUserId)))
+          case None =>
+            // If username cannot be resolved we ignore query.favoritedBy
+            ArticleQuery[UserCoordinates](tag = query.tag, author = query.author, favoritedBy = None)
+        }
+      case None =>
+        IO.pure(ArticleQuery[UserCoordinates](tag = query.tag, author = query.author, favoritedBy = None))
+
+    resolvedQuery.flatMap { rq =>
+      articleRepo
+        .listArticles(rq, pagination, subjectUserId)
+        .map(articles => Articles(articles.map(Entities.Article.fromDB)))
+    }
 
   def getArticle(userIdOpt: Option[UUID])(slug: String): IO[Either[ErrorInfo, ArticleBody]] =
     withArticleOpt2(slug, userIdOpt)(dbArticle => ArticleBody.fromDB(dbArticle))
