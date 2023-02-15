@@ -2,7 +2,7 @@ package pl.msitko.realworld.services
 
 import cats.effect.IO
 import com.dimafeng.testcontainers.PostgreSQLContainer
-import munit.{CatsEffectSuite, FunSuite}
+import munit.CatsEffectSuite
 import com.dimafeng.testcontainers.munit.fixtures.TestContainersFixtures
 import doobie.Transactor
 import org.testcontainers.utility.DockerImageName
@@ -14,7 +14,6 @@ import pl.msitko.realworld.Entities.{
   RegistrationUserBody
 }
 import pl.msitko.realworld.{DBMigration, JwtConfig}
-import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, UserRepo}
 
 import java.util.UUID
 import scala.concurrent.duration.*
@@ -27,36 +26,18 @@ class ArticleServiceSpec extends CatsEffectSuite with TestContainersFixtures {
       container.jdbcUrl
 
       DBMigration.migrate(container.jdbcUrl, container.username, container.password).unsafeRunSync()
-
     }
   }
 
   override def munitFixtures = List(postgres)
 
-  // TODO: rename
   test("Feed should return multiple articles created by followed users, ordered by most recent first") {
-    assert(postgres().jdbcUrl.nonEmpty)
+    val transactor = createTransactor(postgres())
+    val repos      = Repos.fromTransactor(transactor)
 
-    val transactor: Transactor[IO] = Transactor.fromDriverManager[IO](
-      "org.postgresql.Driver",
-      postgres().jdbcUrl,
-      postgres().username,
-      postgres().password
-    )
-
-    val jwtConfig = JwtConfig(
-      secret = "abc",
-      expiration = 1.day
-    )
-
-    val articleRepo = new ArticleRepo(transactor)
-    val commentRepo = new CommentRepo(transactor)
-    val followRepo  = new FollowRepo(transactor)
-    val userRepo    = new UserRepo(transactor)
-
-    val articleService = new ArticleService(articleRepo, commentRepo, followRepo)
-    val followService  = new ProfileService(followRepo, userRepo)
-    val userService    = new UserService(userRepo, jwtConfig)
+    val articleService = new ArticleService(repos.articleRepo, repos.commentRepo, repos.followRepo)
+    val followService  = new ProfileService(repos.followRepo, repos.userRepo)
+    val userService    = new UserService(repos.userRepo, jwtConfig)
 
     for {
       t  <- userService.registration(registrationReqBody("user1"))
@@ -97,5 +78,18 @@ class ArticleServiceSpec extends CatsEffectSuite with TestContainersFixtures {
         tagList = List.empty
       )
     )
+
+  def createTransactor(c: PostgreSQLContainer): Transactor[IO] =
+    Transactor.fromDriverManager[IO](
+      "org.postgresql.Driver",
+      c.jdbcUrl,
+      c.username,
+      c.password
+    )
+
+  val jwtConfig = JwtConfig(
+    secret = "abc",
+    expiration = 1.day
+  )
 
 }

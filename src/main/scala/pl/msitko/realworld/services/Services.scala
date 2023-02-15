@@ -15,21 +15,18 @@ object Services:
   val metricsEndpoint: ServerEndpoint[Any, IO] = prometheusMetrics.metricsEndpoint
 
   def apply(transactor: Transactor[IO], appConfig: AppConfig): List[ServerEndpoint[Any, IO]] =
-    val articleRepo = new ArticleRepo(transactor)
-    val commentRepo = new CommentRepo(transactor)
-    val userRepo    = new UserRepo(transactor)
-    val followRepo  = new FollowRepo(transactor)
+    val repos = Repos.fromTransactor(transactor)
 
     val articleEndpoints     = new ArticleEndpoints(appConfig.jwt)
-    val articleService       = new ArticleService(articleRepo, commentRepo, followRepo)
+    val articleService       = new ArticleService(repos.articleRepo, repos.commentRepo, repos.followRepo)
     val articleEndpointsImpl = ArticleWiring.enpoints(articleEndpoints, articleService)
 
     val profileEndpoints     = new ProfileEndpoints(appConfig.jwt)
-    val profileService       = new ProfileService(followRepo, userRepo)
+    val profileService       = new ProfileService(repos.followRepo, repos.userRepo)
     val profileEndpointsImpl = ProfileWiring.endpoints(profileEndpoints, profileService)
 
     val userEndpoints     = new UserEndpoints(appConfig.jwt)
-    val userService       = new UserService(userRepo, appConfig.jwt)
+    val userService       = new UserService(repos.userRepo, appConfig.jwt)
     val userEndpointsImpl = UserWiring.endpoints(userEndpoints, userService)
 
     val apiServices: List[ServerEndpoint[Any, IO]] =
@@ -39,3 +36,19 @@ object Services:
       .fromServerEndpoints[IO](apiServices, "real-world", "1.0.0")
 
     apiServices ++ docEndpoints ++ List(metricsEndpoint)
+
+final case class Repos(
+    articleRepo: ArticleRepo,
+    commentRepo: CommentRepo,
+    userRepo: UserRepo,
+    followRepo: FollowRepo,
+)
+
+object Repos:
+  def fromTransactor(transactor: Transactor[IO]) =
+    Repos(
+      articleRepo = new ArticleRepo(transactor),
+      commentRepo = new CommentRepo(transactor),
+      userRepo = new UserRepo(transactor),
+      followRepo = new FollowRepo(transactor)
+    )
