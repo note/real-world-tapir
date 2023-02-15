@@ -67,7 +67,7 @@ class ArticleRepo(transactor: Transactor[IO]):
     sql"DELETE FROM favorites WHERE article_id=$articleId AND user_id=$userId".update.run.transact(transactor)
 
   // Can we somehow extract common parts of SQLs (e.g. CTEs)?
-  def feed(subjectUserId: UUID, followed: NonEmptyList[UUID]): IO[List[FullArticle]] =
+  def feed(subjectUserId: UUID, followed: NonEmptyList[UUID], offset: Int, limit: Int): IO[List[FullArticle]] =
     val q = fr"""
         WITH favoritez AS (SELECT article_id, COUNT(user_id) count FROM favorites GROUP BY article_id),
              tagz      AS (SELECT a.id article_id, STRING_AGG(distinct t2.tag, ',' ORDER BY t2.tag ASC) tags from articles a JOIN articles_tags t on a.id = t.article_id JOIN tags t2 on t.tag_id = t2.id GROUP BY a.id),
@@ -81,7 +81,9 @@ class ArticleRepo(transactor: Transactor[IO]):
         LEFT JOIN favoritez f ON a.id = f.article_id
         LEFT JOIN tagz t ON a.id = t.article_id
         LEFT JOIN followerz flrz ON a.author_id = flrz.followed
-        WHERE """ ++ Fragments.in(fr"a.author_id", followed) ++ fr" ORDER BY a.created_at DESC"
+        WHERE """ ++ Fragments.in(
+      fr"a.author_id",
+      followed) ++ fr" ORDER BY a.created_at DESC LIMIT $limit OFFSET $offset"
 
     q.query[FullArticle]
       .to[List]

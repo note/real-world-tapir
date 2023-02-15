@@ -23,12 +23,12 @@ import java.time.Instant
 import java.util.UUID
 
 class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo, followRepo: FollowRepo):
-  def feedArticles(userId: UUID): IO[Articles] =
+  def feedArticles(userId: UUID, offset: Int, limit: Int): IO[Articles] =
     for {
       followed <- followRepo.getFollowedByUser(userId)
       r <- NonEmptyList.fromList(followed) match
         case Some(followedNel) =>
-          articleRepo.feed(userId, followedNel)
+          articleRepo.feed(userId, followedNel, offset = offset, limit = limit)
         case None =>
           IO.pure(List.empty[FullArticle])
     } yield Articles(r.map(Entities.Article.fromDB))

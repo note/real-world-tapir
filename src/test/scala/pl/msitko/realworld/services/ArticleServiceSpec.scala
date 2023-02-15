@@ -48,11 +48,38 @@ class ArticleServiceSpec extends CatsEffectSuite with TestContainersFixtures {
       _     <- articleService.createArticle(user3Id)(createArticleReqBody("title3"))
       _     <- articleService.createArticle(user3Id)(createArticleReqBody("title4"))
       _     <- articleService.createArticle(user3Id)(createArticleReqBody("title5"))
-      feed1 <- articleService.feedArticles(user2Id)
+      feed1 <- articleService.feedArticles(user2Id, 0, 20)
       _     <- IO(assertEquals(feed1, Articles(List.empty)))
       _     <- followService.followProfile(user2Id)("user3")
-      feed2 <- articleService.feedArticles(user2Id)
+      feed2 <- articleService.feedArticles(user2Id, 0, 20)
       _     <- IO(assertEquals(feed2.articles.map(_.title), List("title5", "title4", "title3")))
+    } yield ()
+  }
+
+  test("Feed should take offset and limit into account") {
+    val transactor = createTransactor(postgres())
+    val repos      = Repos.fromTransactor(transactor)
+
+    val articleService = new ArticleService(repos.articleRepo, repos.commentRepo, repos.followRepo)
+    val followService  = new ProfileService(repos.followRepo, repos.userRepo)
+    val userService    = new UserService(repos.userRepo, jwtConfig)
+
+    for {
+      t  <- userService.registration(registrationReqBody("u1"))
+      t2 <- userService.registration(registrationReqBody("u2"))
+      (user1Id, user2Id) = (t._1.id, t2._1.id)
+      _     <- articleService.createArticle(user1Id)(createArticleReqBody("aTitle1"))
+      _     <- articleService.createArticle(user1Id)(createArticleReqBody("aTitle2"))
+      _     <- articleService.createArticle(user1Id)(createArticleReqBody("aTitle3"))
+      _     <- articleService.createArticle(user1Id)(createArticleReqBody("aTitle4"))
+      _     <- articleService.createArticle(user1Id)(createArticleReqBody("aTitle5"))
+      _     <- followService.followProfile(user2Id)("u1")
+      feed1 <- articleService.feedArticles(user2Id, 0, 20)
+      _ <- IO(assertEquals(feed1.articles.map(_.title), List("aTitle5", "aTitle4", "aTitle3", "aTitle2", "aTitle1")))
+      feed2 <- articleService.feedArticles(user2Id, 0, 2)
+      _     <- IO(assertEquals(feed2.articles.map(_.title), List("aTitle5", "aTitle4")))
+      feed3 <- articleService.feedArticles(user2Id, 2, 2)
+      _     <- IO(assertEquals(feed3.articles.map(_.title), List("aTitle3", "aTitle2")))
     } yield ()
 
   }

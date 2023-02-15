@@ -20,8 +20,8 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
 
   val feedArticles = secureEndpoint.get
     .in("api" / "articles" / "feed")
-    .in(query[String]("limit"))
-    .in(query[String]("offset"))
+    .in(query[Int]("limit"))
+    .in(query[Int]("offset"))
     .out(jsonBody[Articles])
 
   val getArticle = optionallySecureEndpoint.get
