@@ -109,3 +109,11 @@ final case class UpdateArticle(
     description: String,
     body: String,
 )
+
+final case class ArticleQuery(tag: Option[String], author: Option[String], favoritedBy: Option[String]):
+  def allEmpty: Boolean = tag.isEmpty && author.isEmpty && favoritedBy.isEmpty
+
+final case class Pagination(
+    offset: Int,
+    limit: Int
+)

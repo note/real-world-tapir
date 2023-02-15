@@ -67,7 +67,7 @@ class ArticleRepo(transactor: Transactor[IO]):
     sql"DELETE FROM favorites WHERE article_id=$articleId AND user_id=$userId".update.run.transact(transactor)
 
   // Can we somehow extract common parts of SQLs (e.g. CTEs)?
-  def feed(subjectUserId: UUID, followed: NonEmptyList[UUID], offset: Int, limit: Int): IO[List[FullArticle]] =
+  def feed(subjectUserId: UUID, followed: NonEmptyList[UUID], pagination: Pagination): IO[List[FullArticle]] =
     val q = fr"""
         WITH favoritez AS (SELECT article_id, COUNT(user_id) count FROM favorites GROUP BY article_id),
              tagz      AS (SELECT a.id article_id, STRING_AGG(distinct t2.tag, ',' ORDER BY t2.tag ASC) tags from articles a JOIN articles_tags t on a.id = t.article_id JOIN tags t2 on t.tag_id = t2.id GROUP BY a.id),
@@ -83,11 +83,40 @@ class ArticleRepo(transactor: Transactor[IO]):
         LEFT JOIN followerz flrz ON a.author_id = flrz.followed
         WHERE """ ++ Fragments.in(
       fr"a.author_id",
-      followed) ++ fr" ORDER BY a.created_at DESC LIMIT $limit OFFSET $offset"
+      followed) ++ fr" ORDER BY a.created_at DESC LIMIT ${pagination.limit} OFFSET ${pagination.offset}"
 
     q.query[FullArticle]
       .to[List]
       .transact(transactor)
+
+//  def listArticles(query: ArticleQuery, pagination: Pagination, subjectUserId: UUID)
+//    val whereClause = generateWhereForArticleQuery(query: ArticleQuery)
+//    val q =
+//      fr"""
+//        WITH favoritez AS (SELECT article_id, COUNT(user_id) count FROM favorites GROUP BY article_id),
+//             tagz      AS (SELECT a.id article_id, STRING_AGG(distinct t2.tag, ',' ORDER BY t2.tag ASC) tags from articles a JOIN articles_tags t on a.id = t.article_id JOIN tags t2 on t.tag_id = t2.id GROUP BY a.id),
+//             followerz AS (SELECT followed, COUNT(follower) count FROM followers WHERE follower=$subjectUserId GROUP BY followed)
+//        SELECT a.id, a.slug, a.title, a.description, a.body, a.created_at, a.updated_at, a.author_id, u.username, u.bio, u.image, f.count as favoritez_count,
+//               (select count(user_id) from favorites where article_id=a.id and user_id=${subjectUserId} group by user_id) favorited,
+//               flrz.count,
+//               t.tags
+//        FROM articles a
+//        JOIN users u ON a.author_id = u.id
+//        LEFT JOIN favoritez f ON a.id = f.article_id
+//        LEFT JOIN tagz t ON a.id = t.article_id
+//        LEFT JOIN followerz flrz ON a.author_id = flrz.followed"""
+//
+//
+//  private def generateWhereForArticleQuery(articleQuery: ArticleQuery) =
+//    if articleQuery.allEmpty
+//      fr""
+//    else
+//      val authorPart = articleQuery.author.map { authorName =>
+//        fr"u.username=$authorName"
+//      }
+//      val favoritedPart = articleQuery.favoritedBy.map { favoritedBy =>
+//        fr""
+//      }
 
   private def idForSlug(slug: String): doobie.ConnectionIO[Option[UUID]] =
     sql"SELECT id FROM articles WHERE slug=$slug"

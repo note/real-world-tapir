@@ -1,34 +1,11 @@
 package pl.msitko.realworld.services
 
 import cats.effect.IO
-import com.dimafeng.testcontainers.PostgreSQLContainer
 import munit.CatsEffectSuite
-import com.dimafeng.testcontainers.munit.fixtures.TestContainersFixtures
-import doobie.Transactor
-import org.testcontainers.utility.DockerImageName
-import pl.msitko.realworld.Entities.{
-  Articles,
-  CreateArticleReq,
-  CreateArticleReqBody,
-  RegistrationReqBody,
-  RegistrationUserBody
-}
-import pl.msitko.realworld.{DBMigration, JwtConfig}
+import pl.msitko.realworld.Entities.*
+import pl.msitko.realworld.db.Pagination
 
-import scala.concurrent.duration.*
-
-class ArticleServiceSpec extends CatsEffectSuite with TestContainersFixtures {
-  val postgres = new ForAllContainerFixture(PostgreSQLContainer(DockerImageName.parse("postgres:15-alpine"))) {
-    override def afterContainerStart(container: PostgreSQLContainer): Unit = {
-      super.afterContainerStart(container)
-
-      container.jdbcUrl
-
-      DBMigration.migrate(container.jdbcUrl, container.username, container.password).unsafeRunSync()
-    }
-  }
-
-  override def munitFixtures = List(postgres)
+class ArticleFeedServiceSpec extends PostgresSpec:
 
   test("Feed should return multiple articles created by followed users, ordered by most recent first") {
     val transactor = createTransactor(postgres())
@@ -48,10 +25,10 @@ class ArticleServiceSpec extends CatsEffectSuite with TestContainersFixtures {
       _     <- articleService.createArticle(user3Id)(createArticleReqBody("title3"))
       _     <- articleService.createArticle(user3Id)(createArticleReqBody("title4"))
       _     <- articleService.createArticle(user3Id)(createArticleReqBody("title5"))
-      feed1 <- articleService.feedArticles(user2Id, 0, 20)
+      feed1 <- articleService.feedArticles(user2Id, defaultPagination)
       _     <- IO(assertEquals(feed1, Articles(List.empty)))
       _     <- followService.followProfile(user2Id)("user3")
-      feed2 <- articleService.feedArticles(user2Id, 0, 20)
+      feed2 <- articleService.feedArticles(user2Id, defaultPagination)
       _     <- IO(assertEquals(feed2.articles.map(_.title), List("title5", "title4", "title3")))
     } yield ()
   }
@@ -74,48 +51,12 @@ class ArticleServiceSpec extends CatsEffectSuite with TestContainersFixtures {
       _     <- articleService.createArticle(user1Id)(createArticleReqBody("aTitle4"))
       _     <- articleService.createArticle(user1Id)(createArticleReqBody("aTitle5"))
       _     <- followService.followProfile(user2Id)("u1")
-      feed1 <- articleService.feedArticles(user2Id, 0, 20)
+      feed1 <- articleService.feedArticles(user2Id, defaultPagination)
       _ <- IO(assertEquals(feed1.articles.map(_.title), List("aTitle5", "aTitle4", "aTitle3", "aTitle2", "aTitle1")))
-      feed2 <- articleService.feedArticles(user2Id, 0, 2)
+      feed2 <- articleService.feedArticles(user2Id, Pagination(offset = 0, limit = 2))
       _     <- IO(assertEquals(feed2.articles.map(_.title), List("aTitle5", "aTitle4")))
-      feed3 <- articleService.feedArticles(user2Id, 2, 2)
+      feed3 <- articleService.feedArticles(user2Id, Pagination(offset = 2, limit = 2))
       _     <- IO(assertEquals(feed3.articles.map(_.title), List("aTitle3", "aTitle2")))
     } yield ()
 
   }
-
-  def registrationReqBody(username: String) =
-    RegistrationReqBody(
-      RegistrationUserBody(
-        username = username,
-        email = s"$username@example.org",
-        password = "abcdef",
-        bio = None,
-        image = None
-      )
-    )
-
-  def createArticleReqBody(title: String) =
-    CreateArticleReqBody(
-      CreateArticleReq(
-        title = title,
-        description = "some descripion",
-        body = "some body",
-        tagList = List.empty
-      )
-    )
-
-  def createTransactor(c: PostgreSQLContainer): Transactor[IO] =
-    Transactor.fromDriverManager[IO](
-      "org.postgresql.Driver",
-      c.jdbcUrl,
-      c.username,
-      c.password
-    )
-
-  val jwtConfig = JwtConfig(
-    secret = "abc",
-    expiration = 1.day
-  )
-
-}

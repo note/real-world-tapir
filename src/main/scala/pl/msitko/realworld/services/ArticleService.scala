@@ -13,7 +13,7 @@ import pl.msitko.realworld.Entities.{
   UpdateArticleReqBody
 }
 import pl.msitko.realworld.db
-import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, FullArticle}
+import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, FullArticle, Pagination}
 import pl.msitko.realworld.Entities
 import pl.msitko.realworld.endpoints.ErrorInfo
 
@@ -23,12 +23,12 @@ import java.time.Instant
 import java.util.UUID
 
 class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo, followRepo: FollowRepo):
-  def feedArticles(userId: UUID, offset: Int, limit: Int): IO[Articles] =
+  def feedArticles(userId: UUID, pagination: Pagination): IO[Articles] =
     for {
       followed <- followRepo.getFollowedByUser(userId)
       r <- NonEmptyList.fromList(followed) match
         case Some(followedNel) =>
-          articleRepo.feed(userId, followedNel, offset = offset, limit = limit)
+          articleRepo.feed(userId, followedNel, pagination)
         case None =>
           IO.pure(List.empty[FullArticle])
     } yield Articles(r.map(Entities.Article.fromDB))
