@@ -1,6 +1,6 @@
 package pl.msitko.realworld.services
 
-import cats.data.NonEmptyList
+import cats.data.{EitherT, NonEmptyList}
 import cats.effect.IO
 import pl.msitko.realworld.Entities.{
   AddCommentReqBody,
@@ -16,10 +16,12 @@ import pl.msitko.realworld.db
 import pl.msitko.realworld.db.{
   ArticleQuery,
   ArticleRepo,
+  ArticleTag,
   CommentRepo,
   FollowRepo,
   FullArticle,
   Pagination,
+  TagRepo,
   UserCoordinates,
   UserRepo
 }
@@ -31,7 +33,16 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
-class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo, followRepo: FollowRepo, userRepo: UserRepo):
+object ArticleService:
+  def apply(repos: Repos): ArticleService =
+    new ArticleService(repos.articleRepo, repos.commentRepo, repos.followRepo, repos.userRepo, repos.tagRepo)
+
+class ArticleService(
+    articleRepo: ArticleRepo,
+    commentRepo: CommentRepo,
+    followRepo: FollowRepo,
+    userRepo: UserRepo,
+    tagRepo: TagRepo):
   def feedArticles(userId: UUID, pagination: Pagination): IO[Articles] =
     for {
       followed <- followRepo.getFollowedByUser(userId)
@@ -69,15 +80,40 @@ class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo, followR
 
   def createArticle(userId: UUID)(reqBody: CreateArticleReqBody): IO[Either[ErrorInfo, ArticleBody]] =
     val dbArticle = reqBody.toDB(generateSlug(reqBody.article.title), Instant.now())
-    articleRepo.insert(dbArticle, userId).flatMap(article => getArticleById(article.id, userId))
+
+    (for {
+      tagIds  <- insertTags(dbArticle.tags)
+      article <- insertArticle(dbArticle, userId)
+      articleTags = tagIds.map(tagId => ArticleTag(articleId = article.article.id, tagId = tagId))
+      _ <- insertArticleTags(articleTags)
+    } yield ArticleBody.fromDB(article)).value
+
+  private def insertArticle(article: db.ArticleNoId, userId: UUID): EitherT[IO, ErrorInfo, db.FullArticle] =
+    EitherT(
+      articleRepo.insert(article, userId).flatMap(article => getArticleById(article.id, userId))
+    )
+
+  private def insertTags(tags: List[String]): EitherT[IO, ErrorInfo, List[UUID]] =
+    EitherT.right[ErrorInfo](
+      NonEmptyList.fromList(tags) match
+        case Some(ts) => tagRepo.upsertTags(ts)
+        case None     => IO.pure(List.empty)
+    )
+
+  private def insertArticleTags(articleTags: List[db.ArticleTag]): EitherT[IO, ErrorInfo, Int] =
+    EitherT.right[ErrorInfo](
+      NonEmptyList.fromList(articleTags) match
+        case Some(ts) => tagRepo.insertArticleTags(ts)
+        case None     => IO.pure(0)
+    )
 
   def updateArticle(userId: UUID)(slug: String, reqBody: UpdateArticleReqBody): IO[Either[ErrorInfo, ArticleBody]] =
     withOwnedArticle(userId, slug) { existingArticle =>
       val changeObj = reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle.article)
-      // This getArticleById is a bit lazy, we could avoid another DB query by composing existing and changeObj
+      // This getArticleBodyById is a bit lazy, we could avoid another DB query by composing existing and changeObj
       articleRepo
         .update(changeObj, existingArticle.article.id)
-        .flatMap(_ => getArticleById(existingArticle.article.id, userId))
+        .flatMap(_ => getArticleBodyById(existingArticle.article.id, userId))
     }
 
   def deleteArticle(userId: UUID)(slug: String): IO[Either[ErrorInfo, Unit]] =
@@ -131,7 +167,7 @@ class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo, followR
     withArticle(slug, userId) { article =>
       for {
         _              <- articleRepo.deleteFavorite(article.article.id, userId)
-        updatedArticle <- getArticleById(article.article.id, userId)
+        updatedArticle <- getArticleBodyById(article.article.id, userId)
       } yield updatedArticle
     }
 
@@ -139,11 +175,14 @@ class ArticleService(articleRepo: ArticleRepo, commentRepo: CommentRepo, followR
   private def generateSlug(title: String): String =
     URLEncoder.encode(title, StandardCharsets.UTF_8)
 
-  private def getArticleById(articleId: UUID, userId: UUID): IO[Either[ErrorInfo, ArticleBody]] =
+  private def getArticleById(articleId: UUID, userId: UUID): IO[Either[ErrorInfo, db.FullArticle]] =
     articleRepo.getById(articleId, userId).map {
-      case Some(article) => Right(ArticleBody.fromDB(article))
+      case Some(article) => Right(article)
       case None          => Left(ErrorInfo.NotFound)
     }
+
+  private def getArticleBodyById(articleId: UUID, userId: UUID): IO[Either[ErrorInfo, ArticleBody]] =
+    getArticleById(articleId, userId).map(_.map(ArticleBody.fromDB))
 
   private def withOwnedArticle[T](userId: UUID, slug: String)(
       fn: db.FullArticle => IO[Either[ErrorInfo, T]]): IO[Either[ErrorInfo, T]] =

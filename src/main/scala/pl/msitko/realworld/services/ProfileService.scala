@@ -9,6 +9,10 @@ import pl.msitko.realworld.endpoints.ErrorInfo
 
 import java.util.UUID
 
+object ProfileService:
+  def apply(repos: Repos) =
+    new ProfileService(repos.followRepo, repos.userRepo)
+
 class ProfileService(followRepo: FollowRepo, userRepo: UserRepo):
   private val userHelper = UserServicesHelper.fromRepo(userRepo)
 

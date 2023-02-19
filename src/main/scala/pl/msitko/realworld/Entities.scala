@@ -157,6 +157,7 @@ object Entities:
         title = article.title,
         description = article.description,
         body = article.body,
+        tags = article.tagList,
         createdAt = now,
         updatedAt = now,
       )

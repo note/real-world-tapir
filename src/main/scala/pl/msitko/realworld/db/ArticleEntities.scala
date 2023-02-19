@@ -13,6 +13,7 @@ final case class ArticleNoId(
     title: String,
     description: String,
     body: String,
+    tags: List[String],
     createdAt: Instant,
     updatedAt: Instant,
 )

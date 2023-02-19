@@ -12,6 +12,10 @@ import sttp.model.StatusCode
 
 import java.util.UUID
 
+object UserService:
+  def apply(repos: Repos, jwtConfig: JwtConfig) =
+    new UserService(repos.userRepo, jwtConfig)
+
 class UserService(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   private val helper = UserServicesHelper.fromRepo(repo)
 
