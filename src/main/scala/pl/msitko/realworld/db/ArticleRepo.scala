@@ -133,7 +133,7 @@ class ArticleRepo(transactor: Transactor[IO]):
           |        JOIN users u ON a.author_id = u.id
           |        LEFT JOIN favoritez f ON a.id = f.article_id
           |        LEFT JOIN tagz t ON a.id = t.article_id
-          |        LEFT JOIN followerz flrz ON a.author_id = flrz.followed $authorPart""".stripMargin
+          |        LEFT JOIN followerz flrz ON a.author_id = flrz.followed $authorPart ORDER BY a.created_at DESC LIMIT ${pagination.limit} OFFSET ${pagination.offset}""".stripMargin
 
     q.query[FullArticle].to[List].transact(transactor)
 
@@ -158,7 +158,7 @@ class ArticleRepo(transactor: Transactor[IO]):
 
     val q =
       fr"""WITH favoritez AS (SELECT article_id, COUNT(user_id) count FROM favorites GROUP BY article_id),
-          |             tagz      AS (SELECT a.id article_id, STRING_AGG(distinct t2.tag, ',' ORDER BY t2.tag ASC) tags from articles a JOIN articles_tags t on a.id = t.article_id JOIN tags t2 on t.tag_id = t2.id GROUP BY a.id),
+          |             tagz      AS (SELECT a.id article_id, STRING_AGG(distinct t2.tag, ',' ORDER BY t2.tag ASC) tags from articles a JOIN articles_tags t on a.id = t.article_id JOIN tags t2 on t.tag_id = t2.id GROUP BY a.id)
           |        SELECT a.id, a.slug, a.title, a.description, a.body, a.created_at, a.updated_at, a.author_id, u.username, u.bio, u.image, f.count as favoritez_count,
           |               NULL,
           |               NULL,
@@ -168,7 +168,7 @@ class ArticleRepo(transactor: Transactor[IO]):
           |        $tagPart
           |        JOIN users u ON a.author_id = u.id
           |        LEFT JOIN favoritez f ON a.id = f.article_id
-          |        LEFT JOIN tagz t ON a.id = t.article_id $authorPart""".stripMargin
+          |        LEFT JOIN tagz t ON a.id = t.article_id $authorPart ORDER BY a.created_at DESC LIMIT ${pagination.limit} OFFSET ${pagination.offset}""".stripMargin
 
     q.query[FullArticle].to[List].transact(transactor)
 
