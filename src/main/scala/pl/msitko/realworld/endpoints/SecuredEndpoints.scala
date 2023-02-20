@@ -2,12 +2,13 @@ package pl.msitko.realworld.endpoints
 
 import cats.implicits.*
 import cats.effect.IO
+import pl.msitko.realworld.db
+import pl.msitko.realworld.db.UserId
 import pl.msitko.realworld.{JWT, JwtConfig}
 import sttp.model.StatusCode
 import sttp.tapir.*
 
 import java.time.Instant
-import java.util.UUID
 import scala.util.Success
 
 // TODO: move somewhere else:
@@ -18,19 +19,21 @@ object ErrorInfo:
   case object Unauthenticated extends ErrorInfo
 
 class SecuredEndpoints(jwtConfig: JwtConfig):
-  def authLogic(token: String): IO[Either[ErrorInfo, UUID]] =
+  def authLogic(token: String): IO[Either[ErrorInfo, UserId]] =
     IO.pure {
       JWT.decodeJwtToken(token, jwtConfig) match
-        case Success((userId, expirationDate)) if Instant.now().isBefore(expirationDate) => Right(userId)
+        case Success((userId, expirationDate)) if Instant.now().isBefore(expirationDate) =>
+          Right(db.liftToUserId(userId))
         case _ => Left(ErrorInfo.Unauthenticated)
     }
 
-  def optionalAuthLogic(tokenOpt: Option[String]): IO[Either[ErrorInfo, Option[UUID]]] =
+  def optionalAuthLogic(tokenOpt: Option[String]): IO[Either[ErrorInfo, Option[UserId]]] =
     IO.pure {
       Right(tokenOpt.map(_.stripPrefix(expectedPrefix)).flatMap { token =>
         JWT.decodeJwtToken(token, jwtConfig) match
-          case Success((userId, expirationDate)) if Instant.now().isBefore(expirationDate) => Some(userId)
-          case _                                                                           => None
+          case Success((userId, expirationDate)) if Instant.now().isBefore(expirationDate) =>
+            Some(db.liftToUserId(userId))
+          case _ => None
       })
     }
 

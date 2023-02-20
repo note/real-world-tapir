@@ -1,7 +1,6 @@
 package pl.msitko.realworld.wiring
 
 import cats.effect.IO
-import pl.msitko.realworld.Entities
 import pl.msitko.realworld.db.{ArticleQuery, Pagination}
 import pl.msitko.realworld.endpoints.ArticleEndpoints
 import pl.msitko.realworld.services.ArticleService

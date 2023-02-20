@@ -2,11 +2,9 @@ package pl.msitko.realworld.db
 
 import doobie.*
 import doobie.implicits.*
-import doobie.postgres.implicits.*
 import doobie.implicits.legacy.instant.*
 
 import java.time.Instant
-import java.util.UUID
 
 final case class ArticleNoId(
     slug: String,
@@ -19,14 +17,14 @@ final case class ArticleNoId(
 )
 
 final case class Article(
-    id: UUID,
+    id: ArticleId,
     slug: String,
     title: String,
     description: String,
     body: String,
     createdAt: Instant,
     updatedAt: Instant,
-    authorId: UUID,
+    authorId: UserId,
 )
 
 // FullArticle represents a result row of data related to a single article and JOINed over many tables
@@ -41,14 +39,14 @@ final case class FullArticle(
 object FullArticle:
   implicit val fullArticleRead: Read[FullArticle] =
     Read[(
-        UUID,
+        ArticleId,
         String,
         String,
         String,
         String,
         Instant,
         Instant,
-        UUID,
+        UserId,
         String,
         Option[String],
         Option[String],
@@ -111,7 +109,7 @@ final case class UpdateArticle(
     body: String,
 )
 
-final case class UserCoordinates(username: String, id: UUID)
+final case class UserCoordinates(username: String, id: UserId)
 
 final case class ArticleQuery[T](
     tag: Option[String] = None,

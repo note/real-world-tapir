@@ -3,9 +3,6 @@ package pl.msitko.realworld.db
 import cats.effect.IO
 import doobie.*
 import doobie.implicits.*
-import doobie.postgres.implicits.*
-
-import java.util.UUID
 
 class UserRepo(transactor: Transactor[IO]):
   def insert(user: UserNoId, password: String): IO[User] =
@@ -19,7 +16,7 @@ class UserRepo(transactor: Transactor[IO]):
       .option
       .transact(transactor)
 
-  def getById(userId: UUID, subjectUserId: UUID): IO[Option[FullUser]] =
+  def getById(userId: UserId, subjectUserId: UserId): IO[Option[FullUser]] =
     sql"""WITH followerz AS (SELECT followed, COUNT(followed) count FROM followers WHERE follower=$subjectUserId AND followed=$userId GROUP BY followed)
          |                  SELECT id, email, username, bio, image, f.count FROM users
          |                         LEFT JOIN followerz f ON users.id = f.followed
@@ -28,16 +25,16 @@ class UserRepo(transactor: Transactor[IO]):
       .option
       .transact(transactor)
 
-  def getById(userId: UUID): IO[Option[FullUser]] =
+  def getById(userId: UserId): IO[Option[FullUser]] =
     sql"""SELECT id, email, username, bio, image, NULL FROM users WHERE id = $userId""".stripMargin
       .query[FullUser]
       .option
       .transact(transactor)
 
-  def resolveUsername(username: String): IO[Option[UUID]] =
-    sql"SELECT id from users where username=$username".query[UUID].option.transact(transactor)
+  def resolveUsername(username: String): IO[Option[UserId]] =
+    sql"SELECT id from users where username=$username".query[UserId].option.transact(transactor)
 
-  def updateUser(ch: UpdateUser, userId: UUID): IO[Int] =
+  def updateUser(ch: UpdateUser, userId: UserId): IO[Int] =
     ch.password match
       case Some(newPassword) =>
         sql"""UPDATE users SET
