@@ -5,6 +5,7 @@ import io.circe.generic.semiauto.*
 import io.circe.parser.parse
 import io.circe.syntax.*
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
+import pl.msitko.realworld.db.UserId
 
 import java.time.Instant
 import java.util.UUID
@@ -28,11 +29,11 @@ object JWT:
     )
     JwtCirce.encode(claim, jwtConfig.secret, JwtAlgorithm.HS256)
 
-  def decodeJwtToken(token: String, jwtConfig: JwtConfig): Try[(UUID, Instant)] =
+  def decodeJwtToken(token: String, jwtConfig: JwtConfig): Try[(UserId, Instant)] =
     JwtCirce.decode(token, jwtConfig.secret, Seq(JwtAlgorithm.HS256)).flatMap { claim =>
       (parse(claim.content).flatMap(_.as[JWTContent]), claim.expiration) match
         case Right(jwtContent) -> Some(expiration) =>
-          Try(UUID.fromString(jwtContent.userId)).map(uid => uid -> Instant.ofEpochSecond(expiration))
+          Try(db.liftToUserId(UUID.fromString(jwtContent.userId))).map(uid => uid -> Instant.ofEpochSecond(expiration))
         case _ =>
           Failure(new RuntimeException("Either proper content or expiration missing in JWT token"))
     }

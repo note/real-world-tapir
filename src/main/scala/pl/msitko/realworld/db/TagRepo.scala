@@ -4,21 +4,17 @@ import cats.data.NonEmptyList
 import cats.effect.IO
 import doobie.*
 import doobie.implicits.*
-import doobie.postgres.implicits.*
-import doobie.implicits.legacy.instant.*
-
-import java.util.UUID
 
 final case class ArticleTag(
-    articleId: UUID,
-    tagId: UUID,
+    articleId: ArticleId,
+    tagId: TagId,
 )
 
 class TagRepo(transactor: Transactor[IO]):
-  def upsertTags(tags: NonEmptyList[String]): IO[List[UUID]] =
+  def upsertTags(tags: NonEmptyList[String]): IO[List[TagId]] =
     val q = fr"INSERT INTO tags (tag) " ++ Fragments.values(tags)
     q.update
-      .withGeneratedKeys[UUID](
+      .withGeneratedKeys[TagId](
         "id"
       )
       .take(tags.size)

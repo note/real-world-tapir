@@ -1,7 +1,8 @@
 package pl.msitko.realworld
 
+import pl.msitko.realworld.db.{ArticleId, UserId}
+
 import java.time.Instant
-import java.util.UUID
 
 object Entities:
   final case class AuthenticationReqBodyUser(email: String, password: String)
@@ -20,7 +21,7 @@ object Entities:
   final case class AddCommentReq(body: String)
 
   final case class AddCommentReqBody(comment: AddCommentReq):
-    def toDB(authorId: UUID, articleId: UUID, now: Instant): db.CommentNoId =
+    def toDB(authorId: UserId, articleId: ArticleId, now: Instant): db.CommentNoId =
       db.CommentNoId(authorId = authorId, articleId = articleId, body = comment.body, createdAt = now, updatedAt = now)
 
   final case class Comment(id: Int, createdAt: Instant, updatedAt: Instant, body: String, author: Profile):

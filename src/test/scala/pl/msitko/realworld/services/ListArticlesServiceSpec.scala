@@ -98,8 +98,6 @@ class ListArticlesServiceSpec extends PostgresSpec:
     val repos      = Repos.fromTransactor(transactor)
 
     val articleService = ArticleService(repos)
-    val followService  = ProfileService(repos)
-    val userService    = UserService(repos, jwtConfig)
 
     def query(pagination: Pagination) =
       articleService.listArticles(

@@ -23,7 +23,7 @@ class SecuredEndpoints(jwtConfig: JwtConfig):
     IO.pure {
       JWT.decodeJwtToken(token, jwtConfig) match
         case Success((userId, expirationDate)) if Instant.now().isBefore(expirationDate) =>
-          Right(db.liftToUserId(userId))
+          Right(userId)
         case _ => Left(ErrorInfo.Unauthenticated)
     }
 
@@ -32,7 +32,7 @@ class SecuredEndpoints(jwtConfig: JwtConfig):
       Right(tokenOpt.map(_.stripPrefix(expectedPrefix)).flatMap { token =>
         JWT.decodeJwtToken(token, jwtConfig) match
           case Success((userId, expirationDate)) if Instant.now().isBefore(expirationDate) =>
-            Some(db.liftToUserId(userId))
+            Some(userId)
           case _ => None
       })
     }

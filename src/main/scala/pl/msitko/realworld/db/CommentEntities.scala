@@ -5,11 +5,10 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import doobie.implicits.legacy.instant.*
 import java.time.Instant
-import java.util.UUID
 
 final case class CommentNoId(
-    authorId: UUID,
-    articleId: UUID,
+    authorId: UserId,
+    articleId: ArticleId,
     body: String,
     createdAt: Instant,
     updatedAt: Instant,
@@ -17,8 +16,8 @@ final case class CommentNoId(
 
 final case class Comment(
     id: Int,
-    authorId: UUID,
-    articleId: UUID,
+    authorId: UserId,
+    articleId: ArticleId,
     body: String,
     createdAt: Instant,
     updatedAt: Instant,
@@ -31,7 +30,7 @@ final case class FullComment(
 
 object FullComment:
   implicit val fullCommentRead: Read[FullComment] =
-    Read[(Int, UUID, UUID, String, Instant, Instant, String, Option[String], Option[String], Option[Int])].map {
+    Read[(Int, UserId, ArticleId, String, Instant, Instant, String, Option[String], Option[String], Option[Int])].map {
       case (id, authorId, articleId, body, createdAt, updatedAt, username, bio, authorImage, following) =>
         val comment = Comment(
           id = id,

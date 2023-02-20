@@ -3,11 +3,8 @@ package pl.msitko.realworld.db
 import cats.effect.IO
 import doobie.*
 import doobie.implicits.*
-import doobie.postgres.implicits.*
 
-import java.util.UUID
-
-final case class Follow(follower: UUID, followed: UUID)
+final case class Follow(follower: UserId, followed: UserId)
 
 class FollowRepo(transactor: Transactor[IO]):
   def insert(follow: Follow): IO[Int] =
@@ -18,5 +15,5 @@ class FollowRepo(transactor: Transactor[IO]):
     sql"DELETE FROM followers WHERE follower=${follow.follower} AND followed=${follow.followed}".update.run
       .transact(transactor)
 
-  def getFollowedByUser(userId: UUID): IO[List[UUID]] =
-    sql"SELECT followed FROM followers WHERE follower=${userId}".query[UUID].to[List].transact(transactor)
+  def getFollowedByUser(userId: UserId): IO[List[UserId]] =
+    sql"SELECT followed FROM followers WHERE follower=${userId}".query[UserId].to[List].transact(transactor)

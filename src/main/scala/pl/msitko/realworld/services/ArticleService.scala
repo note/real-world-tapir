@@ -22,6 +22,7 @@ import pl.msitko.realworld.db.{
   FollowRepo,
   FullArticle,
   Pagination,
+  TagId,
   TagRepo,
   UserCoordinates,
   UserId,
@@ -33,7 +34,6 @@ import pl.msitko.realworld.endpoints.ErrorInfo
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Instant
-import java.util.UUID
 
 object ArticleService:
   def apply(repos: Repos): ArticleService =
@@ -95,7 +95,7 @@ class ArticleService(
       articleRepo.insert(article, userId).flatMap(article => getArticleById(article.id, userId))
     )
 
-  private def insertTags(tags: List[String]): EitherT[IO, ErrorInfo, List[UUID]] =
+  private def insertTags(tags: List[String]): EitherT[IO, ErrorInfo, List[TagId]] =
     EitherT.right[ErrorInfo](
       NonEmptyList.fromList(tags) match
         case Some(ts) => tagRepo.upsertTags(ts)

@@ -7,10 +7,8 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import doobie.implicits.legacy.instant.*
 
-import java.util.UUID
-
 class ArticleRepo(transactor: Transactor[IO]):
-  def insert(article: ArticleNoId, authorId: UUID): IO[Article] =
+  def insert(article: ArticleNoId, authorId: UserId): IO[Article] =
     sql"""INSERT INTO articles (author_id, slug, title, description, body, created_at, updated_at)
          |VALUES ($authorId, ${article.slug}, ${article.title}, ${article.description}, ${article.body}, ${article.createdAt}, ${article.updatedAt})""".stripMargin.update
       .withUniqueGeneratedKeys[Article](
@@ -24,7 +22,7 @@ class ArticleRepo(transactor: Transactor[IO]):
         "author_id")
       .transact(transactor)
 
-  def update(ch: UpdateArticle, articleId: UUID): IO[Int] =
+  def update(ch: UpdateArticle, articleId: ArticleId): IO[Int] =
     sql"""UPDATE articles SET
          |slug = ${ch.slug},
          |title = ${ch.title},
@@ -34,7 +32,7 @@ class ArticleRepo(transactor: Transactor[IO]):
          |WHERE id=$articleId
        """.stripMargin.update.run.transact(transactor)
 
-  def getBySlug(slug: String, subjectUserId: UUID): IO[Option[FullArticle]] =
+  def getBySlug(slug: String, subjectUserId: UserId): IO[Option[FullArticle]] =
     (for {
       articleIdOpt <- idForSlug(slug)
       article <- articleIdOpt match
@@ -54,20 +52,20 @@ class ArticleRepo(transactor: Transactor[IO]):
           doobie.free.connection.pure(None)
     } yield article).transact(transactor)
 
-  def getById(id: UUID, subjectUserId: UUID): IO[Option[FullArticle]] =
+  def getById(id: ArticleId, subjectUserId: UserId): IO[Option[FullArticle]] =
     getById2(id, subjectUserId).transact(transactor)
 
   def delete(slug: String): IO[Int] =
     sql"DELETE FROM articles WHERE slug=$slug".update.run.transact(transactor)
 
-  def insertFavorite(articleId: UUID, userId: UUID): IO[Int] =
+  def insertFavorite(articleId: ArticleId, userId: UserId): IO[Int] =
     sql"INSERT INTO favorites (article_id, user_id) VALUES ($articleId, $userId)".update.run.transact(transactor)
 
-  def deleteFavorite(articleId: UUID, userId: UUID): IO[Int] =
+  def deleteFavorite(articleId: ArticleId, userId: UserId): IO[Int] =
     sql"DELETE FROM favorites WHERE article_id=$articleId AND user_id=$userId".update.run.transact(transactor)
 
   // Can we somehow extract common parts of SQLs (e.g. CTEs)?
-  def feed(subjectUserId: UUID, followed: NonEmptyList[UUID], pagination: Pagination): IO[List[FullArticle]] =
+  def feed(subjectUserId: UserId, followed: NonEmptyList[UserId], pagination: Pagination): IO[List[FullArticle]] =
     val q = fr"""
         WITH favoritez AS (SELECT article_id, COUNT(user_id) count FROM favorites GROUP BY article_id),
              tagz      AS (SELECT a.id article_id, STRING_AGG(distinct t2.tag, ',' ORDER BY t2.tag ASC) tags from articles a JOIN articles_tags t on a.id = t.article_id JOIN tags t2 on t.tag_id = t2.id GROUP BY a.id),
@@ -92,7 +90,7 @@ class ArticleRepo(transactor: Transactor[IO]):
   def listArticles(
       query: ArticleQuery[UserCoordinates],
       pagination: Pagination,
-      subjectUserId: Option[UUID]): IO[List[FullArticle]] =
+      subjectUserId: Option[UserId]): IO[List[FullArticle]] =
     subjectUserId match
       case Some(uid) => listArticles(query, pagination, uid)
       case None      => listArticles(query, pagination)
@@ -100,7 +98,7 @@ class ArticleRepo(transactor: Transactor[IO]):
   def listArticles(
       query: ArticleQuery[UserCoordinates],
       pagination: Pagination,
-      subjectUserId: UUID): IO[List[FullArticle]] =
+      subjectUserId: UserId): IO[List[FullArticle]] =
     val favoritedPart = query.favoritedBy match
       case Some(u) =>
         fr" JOIN favorites ON (a.id=favorites.article_id AND favorites.user_id=${u.id}) "
@@ -172,13 +170,13 @@ class ArticleRepo(transactor: Transactor[IO]):
 
     q.query[FullArticle].to[List].transact(transactor)
 
-  private def idForSlug(slug: String): doobie.ConnectionIO[Option[UUID]] =
+  private def idForSlug(slug: String): doobie.ConnectionIO[Option[ArticleId]] =
     sql"SELECT id FROM articles WHERE slug=$slug"
-      .query[UUID]
+      .query[ArticleId]
       .option
 
   // TODO: rename
-  private def getById2(articleId: UUID, subjectUserId: UUID): doobie.ConnectionIO[Option[FullArticle]] =
+  private def getById2(articleId: ArticleId, subjectUserId: UserId): doobie.ConnectionIO[Option[FullArticle]] =
     sql"""
          |WITH favoritez AS (SELECT article_id, COUNT(user_id) count FROM favorites WHERE article_id=$articleId GROUP BY article_id),
          |     tagz      AS (SELECT a.id article_id, STRING_AGG(distinct t2.tag, ',' ORDER BY t2.tag ASC) tags from articles a JOIN articles_tags t on a.id = t.article_id JOIN tags t2 on t.tag_id = t2.id WHERE article_id=$articleId GROUP BY a.id),
@@ -198,7 +196,7 @@ class ArticleRepo(transactor: Transactor[IO]):
       .option
 
   // TODO: rename
-  private def getById3(articleId: UUID): doobie.ConnectionIO[Option[FullArticle]] =
+  private def getById3(articleId: ArticleId): doobie.ConnectionIO[Option[FullArticle]] =
     sql"""
          |WITH favoritez AS (SELECT article_id, COUNT(user_id) count FROM favorites WHERE article_id=$articleId GROUP BY article_id),
          |     tagz      AS (SELECT a.id article_id, STRING_AGG(distinct t2.tag, ',' ORDER BY t2.tag ASC) tags from articles a JOIN articles_tags t on a.id = t.article_id JOIN tags t2 on t.tag_id = t2.id WHERE article_id=$articleId GROUP BY a.id)
