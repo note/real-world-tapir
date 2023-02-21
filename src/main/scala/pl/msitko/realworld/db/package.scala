@@ -14,13 +14,6 @@ package object db:
   implicit val articleIdMeta: Meta[ArticleId] =
     Meta[UUID].imap(liftToArticleId)(identity)
 
-//  private type AuthenticatedUserIdTag
-//  type AuthenticatedUserId = AuthenticatedUserIdTag & UUID
-//  def liftToAuthenticatedUserId(uuid: UUID): AuthenticatedUserId =
-//    uuid.asInstanceOf[AuthenticatedUserId]
-//  implicit val authenticatedUserIduserIdMeta: Meta[AuthenticatedUserId] =
-//    Meta[UUID].imap(liftToAuthenticatedUserId)(identity)
-
   private type UserIdTag
   type UserId = UserIdTag & UUID
   def liftToUserId(uuid: UUID): UserId =

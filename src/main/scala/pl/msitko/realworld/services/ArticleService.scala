@@ -95,7 +95,7 @@ class ArticleService(
       articleRepo.insert(article, userId).flatMap(article => getArticleById(article.id, userId))
     )
 
-  private def insertTags(tags: List[String]): EitherT[IO, ErrorInfo, List[TagId]] =
+  private def insertTags(tags: List[String]): Result[List[TagId]] =
     EitherT.right[ErrorInfo](
       NonEmptyList.fromList(tags) match
         case Some(ts) => tagRepo.upsertTags(ts)
@@ -109,7 +109,7 @@ class ArticleService(
         case None     => IO.pure(0)
     )
 
-  def updateArticle(userId: UserId)(slug: String, reqBody: UpdateArticleReqBody): Result[ArticleBody] =
+  def updateArticle(userId: UserId)(slug: String, reqBody: UpdateArticleReqBody): IO[Either[ErrorInfo, ArticleBody]] =
     withOwnedArticle(userId, slug) { existingArticle =>
       val changeObj = reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle.article)
       // This getArticleBodyById is a bit lazy, we could avoid another DB query by composing existing and changeObj
