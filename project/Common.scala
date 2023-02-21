@@ -17,7 +17,7 @@ object Common {
       scalacOptions ++= Seq("-Xmax-inlines", "64", "-Wunused:all"),
 
       commonSmlBuildSettings,
-      testFrameworks += new TestFramework("munit.Framework")
+      testFrameworks += new TestFramework("munit.Framework"),
     )
   }
 }

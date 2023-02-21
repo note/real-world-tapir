@@ -35,10 +35,17 @@ object Services:
     val apiServices: List[ServerEndpoint[Any, IO]] =
       articleEndpointsImpl ++ profileEndpointsImpl ++ userEndpointsImpl ++ tagEndpointsImpl
 
-    val docEndpoints: List[ServerEndpoint[Any, IO]] = SwaggerInterpreter()
-      .fromServerEndpoints[IO](apiServices, "real-world", "1.0.0")
+    // TODO: Fix
+//    Caused by: java.lang.NullPointerException
+//    : Cannot invoke "java.io.InputStream.close()" because "pomProperties" is null
+//    at sttp
+//    .tapir.swagger.SwaggerUI$.< clinit >(SwaggerUI.scala: 15)
+//    .
+//    ..12 more
+//    val docEndpoints: List[ServerEndpoint[Any, IO]] = SwaggerInterpreter()
+//      .fromServerEndpoints[IO](apiServices, "real-world", "1.0.0")
 
-    apiServices ++ docEndpoints ++ List(metricsEndpoint)
+    apiServices ++ List(metricsEndpoint)
 
 final case class Repos(
     articleRepo: ArticleRepo,

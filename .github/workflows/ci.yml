@@ -12,6 +12,7 @@ jobs:
           java-version: openjdk@1.17
       - run: sbt test
       - run: |
-          docker-compose up -d &&
-          sbt run &
+          docker-compose up -d
+          sbt assembly
+          java -jar target/scala-3.3.0-RC2/real-world-tapir-assembly-0.1.0.jar &
           newman run real-world-extended.postman_collection.json -e local-real-world.postman_environment.json
