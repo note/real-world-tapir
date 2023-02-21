@@ -1,0 +1,11 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3.3.0
+      - uses: olafurpg/setup-scala@v14
+      - run: sbt test
