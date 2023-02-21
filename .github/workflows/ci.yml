@@ -8,4 +8,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3.3.0
       - uses: olafurpg/setup-scala@v14
+        with:
+          java-version: openjdk@1.17
       - run: sbt test
