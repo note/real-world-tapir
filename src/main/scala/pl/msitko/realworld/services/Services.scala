@@ -29,8 +29,11 @@ object Services:
     val userService       = UserService(repos, appConfig.jwt)
     val userEndpointsImpl = UserWiring.endpoints(userEndpoints, userService)
 
+    val tagService       = TagService(repos)
+    val tagEndpointsImpl = TagWiring.endpoints(tagService)
+
     val apiServices: List[ServerEndpoint[Any, IO]] =
-      articleEndpointsImpl ++ profileEndpointsImpl ++ userEndpointsImpl ++ TagWiring.endpoints
+      articleEndpointsImpl ++ profileEndpointsImpl ++ userEndpointsImpl ++ tagEndpointsImpl
 
     val docEndpoints: List[ServerEndpoint[Any, IO]] = SwaggerInterpreter()
       .fromServerEndpoints[IO](apiServices, "real-world", "1.0.0")

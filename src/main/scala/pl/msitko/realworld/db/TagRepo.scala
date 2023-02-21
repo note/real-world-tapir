@@ -27,3 +27,6 @@ class TagRepo(transactor: Transactor[IO]):
     val q = fr"INSERT INTO articles_tags (article_id, tag_id) " ++ Fragments.values(articleTags)
     q.update.run
     q.update.run.transact(transactor)
+
+  def getAllTags: IO[List[String]] =
+    sql"SELECT tag from tags".query[String].to[List].transact(transactor)

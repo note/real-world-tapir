@@ -114,6 +114,8 @@ object Entities:
       )
 
   final case class Tags(tags: List[String])
+  object Tags:
+    def fromDB(tags: List[String]): Tags = Tags(tags)
 
   final case class ArticleBody(article: Article)
   object ArticleBody:
@@ -141,11 +143,11 @@ object Entities:
         title = dbArticle.article.title,
         description = dbArticle.article.description,
         body = dbArticle.article.body,
-        tagList = dbArticle.tags, // TODO: implement it
+        tagList = dbArticle.tags,
         createdAt = dbArticle.article.createdAt,
         updatedAt = dbArticle.article.updatedAt,
-        favorited = dbArticle.favorited.isDefined,              // TODO: implement it
-        favoritesCount = dbArticle.favoritesCount.getOrElse(0), // TODO: implement it
+        favorited = dbArticle.favorited.isDefined,
+        favoritesCount = dbArticle.favoritesCount.getOrElse(0),
         author = Profile.fromDB(dbArticle.author)
       )
 
