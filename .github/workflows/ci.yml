@@ -7,12 +7,13 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3.3.0
-      - uses: olafurpg/setup-scala@v14
+      - uses: coursier/setup-action@v1
         with:
-          java-version: openjdk@1.17
-      - run: sbt test
+          jvm: adoptium:1.17
+          apps: sbtn
+      - run: sbtn test
       - run: |
           docker-compose up -d
-          sbt assembly
+          sbtn assembly
           java -jar target/scala-3.3.0-RC2/real-world-tapir-assembly-0.1.0.jar &
           newman run real-world-extended.postman_collection.json -e local-real-world.postman_environment.json
