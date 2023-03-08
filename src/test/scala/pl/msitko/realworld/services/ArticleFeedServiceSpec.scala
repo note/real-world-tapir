@@ -26,7 +26,7 @@ class ArticleFeedServiceSpec extends PostgresSpec:
       _     <- articleService.createArticle(user3Id)(createArticleReqBody("title4"))
       _     <- articleService.createArticle(user3Id)(createArticleReqBody("title5"))
       feed1 <- articleService.feedArticles(user2Id, defaultPagination)
-      _     <- IO(assertEquals(feed1, Articles(List.empty)))
+      _     <- IO(assertEquals(feed1, Articles.fromArticles(List.empty)))
       _     <- followService.followProfile(user2Id)("user3")
       feed2 <- articleService.feedArticles(user2Id, defaultPagination)
       _     <- IO(assertEquals(feed2.articles.map(_.title), List("title5", "title4", "title3")))

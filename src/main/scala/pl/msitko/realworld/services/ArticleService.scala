@@ -53,7 +53,7 @@ class ArticleService(
           articleRepo.feed(userId, followedNel, pagination)
         case None =>
           IO.pure(List.empty[FullArticle])
-    } yield Articles(r.map(Entities.Article.fromDB))
+    } yield Articles.fromArticles(r.map(Entities.Article.fromDB))
 
   def listArticles(subjectUserId: Option[UserId], query: ArticleQuery[String], pagination: Pagination): IO[Articles] =
     val resolvedQuery = query.favoritedBy match
@@ -74,7 +74,7 @@ class ArticleService(
     resolvedQuery.flatMap { rq =>
       articleRepo
         .listArticles(rq, pagination, subjectUserId)
-        .map(articles => Articles(articles.map(Entities.Article.fromDB)))
+        .map(articles => Articles.fromArticles(articles.map(Entities.Article.fromDB)))
     }
 
   def getArticle(userIdOpt: Option[UserId])(slug: String): IO[Either[ErrorInfo, ArticleBody]] =

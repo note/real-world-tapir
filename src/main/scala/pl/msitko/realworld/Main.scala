@@ -15,6 +15,7 @@ object Main extends IOApp:
       Http4sServerOptions
         .customiseInterceptors[IO]
         .metricsInterceptor(Services.prometheusMetrics.metricsInterceptor())
+        .corsInterceptor(sttp.tapir.server.interceptor.cors.CORSInterceptor.default)
         .options
 
     Http4sServerInterpreter[IO](serverOptions).toRoutes(services)

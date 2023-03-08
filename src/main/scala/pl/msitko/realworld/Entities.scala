@@ -165,6 +165,6 @@ object Entities:
         updatedAt = now,
       )
 
-  // TODO: does is use circe?
-  //  given instantEncoder: Encoder[Instant] = ???
-  final case class Articles(articles: List[Article])
+  final case class Articles(articles: List[Article], articlesCount: Int)
+  object Articles:
+    def fromArticles(articles: List[Article]): Articles = Articles(articles = articles, articlesCount = articles.size)
