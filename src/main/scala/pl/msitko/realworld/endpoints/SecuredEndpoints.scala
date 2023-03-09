@@ -1,5 +1,7 @@
 package pl.msitko.realworld.endpoints
 
+import cats.data.ValidatedNec
+import io.circe.generic.auto.*
 import cats.implicits.*
 import cats.effect.IO
 import pl.msitko.realworld.db
@@ -7,6 +9,8 @@ import pl.msitko.realworld.db.UserId
 import pl.msitko.realworld.{JWT, JwtConfig}
 import sttp.model.StatusCode
 import sttp.tapir.*
+import sttp.tapir.generic.auto.*
+import sttp.tapir.json.circe.*
 
 import java.time.Instant
 import scala.util.Success
@@ -14,9 +18,14 @@ import scala.util.Success
 // TODO: move somewhere else:
 sealed trait ErrorInfo
 object ErrorInfo:
-  case object NotFound        extends ErrorInfo
-  case object Unauthorized    extends ErrorInfo
-  case object Unauthenticated extends ErrorInfo
+  case object NotFound                                                extends ErrorInfo
+  case object Unauthorized                                            extends ErrorInfo
+  case object Unauthenticated                                         extends ErrorInfo
+  final case class ValidationError(errors: Map[String, List[String]]) extends ErrorInfo
+  object ValidationError:
+    def fromNec(in: cats.data.NonEmptyChain[(String, String)]): ValidationError =
+      val errs = in.toChain.toList.groupBy(_._1).map((k, v) => k -> v.map(_._2))
+      ValidationError(errs)
 
 class SecuredEndpoints(jwtConfig: JwtConfig):
   def authLogic(token: String): IO[Either[ErrorInfo, UserId]] =
@@ -55,6 +64,8 @@ class SecuredEndpoints(jwtConfig: JwtConfig):
     )
     .errorOut(
       oneOf[ErrorInfo](
+        oneOfVariant(
+          statusCode(StatusCode.UnprocessableEntity).and(jsonBody[ErrorInfo.ValidationError].description(""))),
         oneOfVariant(statusCode(StatusCode.NotFound).and(emptyOutputAs(ErrorInfo.NotFound))),
         oneOfVariant(statusCode(StatusCode.Forbidden).and(emptyOutputAs(ErrorInfo.Unauthorized))),
         oneOfVariant(statusCode(StatusCode.Unauthorized).and(emptyOutputAs(ErrorInfo.Unauthenticated))),

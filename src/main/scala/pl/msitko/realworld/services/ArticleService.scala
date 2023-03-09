@@ -1,6 +1,8 @@
 package pl.msitko.realworld.services
 
-import cats.data.{EitherT, NonEmptyList}
+import cats.data.Validated.Invalid
+import cats.data.Validated.Valid
+import cats.data.{EitherT, NonEmptyList, ValidatedNec}
 import cats.effect.IO
 import pl.msitko.realworld.Entities.{
   AddCommentReqBody,
@@ -12,7 +14,7 @@ import pl.msitko.realworld.Entities.{
   CreateArticleReqBody,
   UpdateArticleReqBody
 }
-import pl.msitko.realworld.db
+import pl.msitko.realworld.{db, Entities, Validated}
 import pl.msitko.realworld.db.{
   ArticleId,
   ArticleQuery,
@@ -28,8 +30,8 @@ import pl.msitko.realworld.db.{
   UserId,
   UserRepo
 }
-import pl.msitko.realworld.Entities
 import pl.msitko.realworld.endpoints.ErrorInfo
+import pl.msitko.realworld.endpoints.ErrorInfo.ValidationError
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -81,14 +83,18 @@ class ArticleService(
     withArticleOpt2(slug, userIdOpt)(dbArticle => ArticleBody.fromDB(dbArticle))
 
   def createArticle(userId: UserId)(reqBody: CreateArticleReqBody): IO[Either[ErrorInfo, ArticleBody]] =
-    val dbArticle = reqBody.toDB(generateSlug(reqBody.article.title), Instant.now())
-
     (for {
-      tagIds  <- insertTags(dbArticle.tags)
-      article <- insertArticle(dbArticle, userId)
+      dbArticle <- toResult(reqBody.toDB(generateSlug(reqBody.article.title), Instant.now()))
+      tagIds    <- insertTags(dbArticle.tags)
+      article   <- insertArticle(dbArticle, userId)
       articleTags = tagIds.map(tagId => ArticleTag(articleId = article.article.id, tagId = tagId))
       _ <- insertArticleTags(articleTags)
     } yield ArticleBody.fromDB(article)).value
+
+  // TODO: move somewhere else:
+  private def toResult[T](in: Validated[T]): Result[T] = in match
+    case Valid(v)   => EitherT.right[ErrorInfo](IO.pure(v))
+    case Invalid(e) => EitherT.left[T](IO.pure(ValidationError.fromNec(e)))
 
   private def insertArticle(article: db.ArticleNoId, userId: UserId): Result[db.FullArticle] =
     EitherT(

@@ -1,6 +1,9 @@
 package pl.msitko.realworld
 
-import pl.msitko.realworld.db.{ArticleId, UserId}
+import cats.data.ValidatedNec
+import pl.msitko.realworld.db.{ArticleId, ArticleNoId, UserId}
+import pl.msitko.realworld.endpoints.ErrorInfo
+import cats.syntax.all._
 
 import java.time.Instant
 
@@ -154,16 +157,19 @@ object Entities:
   final case class CreateArticleReq(title: String, description: String, body: String, tagList: List[String])
 
   final case class CreateArticleReqBody(article: CreateArticleReq):
-    def toDB(slug: String, now: Instant): db.ArticleNoId =
-      db.ArticleNoId(
-        slug = slug,
-        title = article.title,
-        description = article.description,
-        body = article.body,
-        tags = article.tagList,
-        createdAt = now,
-        updatedAt = now,
-      )
+    def toDB(slug: String, now: Instant): Validated[ArticleNoId] =
+      if (article.body.isEmpty)
+        ("body" -> "can't be empty").invalidNec
+      else
+        db.ArticleNoId(
+          slug = slug,
+          title = article.title,
+          description = article.description,
+          body = article.body,
+          tags = article.tagList,
+          createdAt = now,
+          updatedAt = now,
+        ).validNec
 
   final case class Articles(articles: List[Article], articlesCount: Int)
   object Articles:
