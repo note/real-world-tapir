@@ -1,8 +1,9 @@
 package pl.msitko.realworld.services
 
+import cats.data.EitherT
 import cats.effect.IO
 import munit.CatsEffectSuite
-import pl.msitko.realworld.entities.OtherEntities.*
+import pl.msitko.realworld.entities.*
 import pl.msitko.realworld.db.Pagination
 
 class ArticleFeedServiceSpec extends PostgresSpec:
@@ -25,11 +26,11 @@ class ArticleFeedServiceSpec extends PostgresSpec:
       _     <- articleService.createArticle(user3Id)(createArticleReqBody("title3"))
       _     <- articleService.createArticle(user3Id)(createArticleReqBody("title4"))
       _     <- articleService.createArticle(user3Id)(createArticleReqBody("title5"))
-      feed1 <- articleService.feedArticles(user2Id, defaultPagination)
-      _     <- IO(assertEquals(feed1, Articles.fromArticles(List.empty)))
+      feed1 <- EitherT.right(articleService.feedArticles(user2Id, defaultPagination))
+      _     <- EitherT.pure(assertEquals(feed1, Articles.fromArticles(List.empty)))
       _     <- followService.followProfile(user2Id)("user3")
-      feed2 <- articleService.feedArticles(user2Id, defaultPagination)
-      _     <- IO(assertEquals(feed2.articles.map(_.title), List("title5", "title4", "title3")))
+      feed2 <- EitherT.right(articleService.feedArticles(user2Id, defaultPagination))
+      _     <- EitherT.pure(assertEquals(feed2.articles.map(_.title), List("title5", "title4", "title3")))
     } yield ()
   }
 
@@ -51,12 +52,13 @@ class ArticleFeedServiceSpec extends PostgresSpec:
       _     <- articleService.createArticle(user1Id)(createArticleReqBody("aTitle4"))
       _     <- articleService.createArticle(user1Id)(createArticleReqBody("aTitle5"))
       _     <- followService.followProfile(user2Id)("u1")
-      feed1 <- articleService.feedArticles(user2Id, defaultPagination)
-      _ <- IO(assertEquals(feed1.articles.map(_.title), List("aTitle5", "aTitle4", "aTitle3", "aTitle2", "aTitle1")))
-      feed2 <- articleService.feedArticles(user2Id, Pagination(offset = 0, limit = 2))
-      _     <- IO(assertEquals(feed2.articles.map(_.title), List("aTitle5", "aTitle4")))
-      feed3 <- articleService.feedArticles(user2Id, Pagination(offset = 2, limit = 2))
-      _     <- IO(assertEquals(feed3.articles.map(_.title), List("aTitle3", "aTitle2")))
+      feed1 <- EitherT.right(articleService.feedArticles(user2Id, defaultPagination))
+      _ <- EitherT.pure(
+        assertEquals(feed1.articles.map(_.title), List("aTitle5", "aTitle4", "aTitle3", "aTitle2", "aTitle1")))
+      feed2 <- EitherT.right(articleService.feedArticles(user2Id, Pagination(offset = 0, limit = 2)))
+      _     <- EitherT.pure(assertEquals(feed2.articles.map(_.title), List("aTitle5", "aTitle4")))
+      feed3 <- EitherT.right(articleService.feedArticles(user2Id, Pagination(offset = 2, limit = 2)))
+      _     <- EitherT.pure(assertEquals(feed3.articles.map(_.title), List("aTitle3", "aTitle2")))
     } yield ()
 
   }

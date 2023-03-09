@@ -1,6 +1,5 @@
 package pl.msitko.realworld.endpoints
 
-import cats.data.ValidatedNec
 import io.circe.generic.auto.*
 import cats.implicits.*
 import cats.effect.IO

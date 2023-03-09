@@ -8,12 +8,12 @@ final case class AuthenticationReqBody(user: AuthenticationReqBodyUser)
 final case class RegistrationReqBody(user: RegistrationUserBody)
 
 final case class User(
-                       email: String,
-                       token: String,
-                       username: String,
-                       bio: Option[String],
-                       image: Option[String],
-                     ):
+    email: String,
+    token: String,
+    username: String,
+    bio: Option[String],
+    image: Option[String],
+):
   def body: UserBody = UserBody(user = this)
 
 final case class UserBody(user: User)
@@ -28,21 +28,21 @@ object UserBody:
     ))
 
 final case class RegistrationUserBody(
-                                       username: String,
-                                       email: String,
-                                       password: String,
-                                       bio: Option[String],
-                                       image: Option[String]):
+    username: String,
+    email: String,
+    password: String,
+    bio: Option[String],
+    image: Option[String]):
   override def toString: String =
     s"RegistrationUserBody($username, $email, <masked>, $bio, $image)"
 
 final case class UpdateUserBody(
-                                 email: Option[String],
-                                 username: Option[String],
-                                 password: Option[String],
-                                 image: Option[String],
-                                 bio: Option[String],
-                               )
+    email: Option[String],
+    username: Option[String],
+    password: Option[String],
+    image: Option[String],
+    bio: Option[String],
+)
 
 final case class UpdateUserReqBody(user: UpdateUserBody):
   def toDB(existingUser: db.User): db.UpdateUser =

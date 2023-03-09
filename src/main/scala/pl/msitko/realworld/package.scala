@@ -6,7 +6,6 @@ import cats.effect.IO
 import cats.syntax.all.*
 import pl.msitko.realworld.endpoints.ErrorInfo
 import pl.msitko.realworld.endpoints.ErrorInfo.ValidationError
-import pl.msitko.realworld.services.Result
 
 package object realworld:
   type Validated[T] = ValidatedNec[(String, String), T]

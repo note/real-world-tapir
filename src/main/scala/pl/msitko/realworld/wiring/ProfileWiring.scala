@@ -8,7 +8,7 @@ import sttp.tapir.server.ServerEndpoint
 object ProfileWiring:
   def endpoints(profileEndpoints: ProfileEndpoints, service: ProfileService): List[ServerEndpoint[Any, IO]] =
     List(
-      profileEndpoints.getProfile.serverLogic(service.getProfile),
-      profileEndpoints.followProfile.serverLogic(service.followProfile),
-      profileEndpoints.unfollowProfile.serverLogic(service.unfollowProfile),
+      profileEndpoints.getProfile.resultLogic(service.getProfile),
+      profileEndpoints.followProfile.resultLogic(service.followProfile),
+      profileEndpoints.unfollowProfile.resultLogic(service.unfollowProfile),
     )

@@ -1,12 +1,13 @@
 package pl.msitko.realworld.services
 
+import cats.data.EitherT
 import cats.effect.IO
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import com.dimafeng.testcontainers.munit.fixtures.TestContainersFixtures
 import doobie.Transactor
-import munit.CatsEffectSuite
+import munit.{CatsEffectSuite, Location}
 import org.testcontainers.utility.DockerImageName
-import pl.msitko.realworld.entities.OtherEntities.{CreateArticleReq, CreateArticleReqBody, RegistrationReqBody, RegistrationUserBody}
+import pl.msitko.realworld.entities.{CreateArticleReq, CreateArticleReqBody, RegistrationReqBody, RegistrationUserBody}
 import pl.msitko.realworld.db.Pagination
 import pl.msitko.realworld.{DBMigration, JwtConfig}
 
@@ -59,3 +60,10 @@ trait PostgresSpec extends CatsEffectSuite with TestContainersFixtures:
       c.username,
       c.password
     )
+
+  protected def ioAssertEquals[A, B, E](
+      obtained: A,
+      expected: B,
+      clue: => Any = "values are not the same"
+  )(implicit loc: Location, ev: B <:< A): EitherT[IO, E, Unit] =
+    EitherT(IO.apply(Right[E, Unit](assertEquals(obtained, expected, clue))))

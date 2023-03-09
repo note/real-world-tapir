@@ -16,13 +16,13 @@ object ArticleWiring:
       },
       articleEndpoints.feedArticles.serverLogicSuccess(userId =>
         (limit, offset) => service.feedArticles(userId, Pagination.fromReq(limit = limit, offset = offset))),
-      articleEndpoints.getArticle.serverLogic(service.getArticle),
-      articleEndpoints.createArticle.serverLogic(service.createArticle),
-      articleEndpoints.updateArticle.serverLogic(service.updateArticle),
-      articleEndpoints.deleteArticle.serverLogic(service.deleteArticle),
-      articleEndpoints.addComment.serverLogic(service.addComment),
-      articleEndpoints.getComments.serverLogic(service.getComments),
-      articleEndpoints.deleteComment.serverLogic(userId => (_, commentId) => service.deleteComment(userId)(commentId)),
-      articleEndpoints.favoriteArticle.serverLogic(service.favoriteArticle),
-      articleEndpoints.unfavoriteArticle.serverLogic(service.unfavoriteArticle)
+      articleEndpoints.getArticle.resultLogic(service.getArticle),
+      articleEndpoints.createArticle.resultLogic(service.createArticle),
+      articleEndpoints.updateArticle.resultLogic(service.updateArticle),
+      articleEndpoints.deleteArticle.resultLogic(service.deleteArticle),
+      articleEndpoints.addComment.resultLogic(service.addComment),
+      articleEndpoints.getComments.resultLogic(service.getComments),
+      articleEndpoints.deleteComment.resultLogic(userId => (_, commentId) => service.deleteComment(userId)(commentId)),
+      articleEndpoints.favoriteArticle.resultLogic(service.favoriteArticle),
+      articleEndpoints.unfavoriteArticle.resultLogic(service.unfavoriteArticle)
     )

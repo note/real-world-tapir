@@ -1,12 +1,15 @@
 package pl.msitko.realworld.endpoints
 
+import cats.effect.IO
 import io.circe.generic.auto.*
 import pl.msitko.realworld.JwtConfig
-import pl.msitko.realworld.entities.OtherEntities.*
+import pl.msitko.realworld.db.UserId
+import pl.msitko.realworld.entities.*
 import sttp.model.StatusCode
 import sttp.tapir.*
 import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.*
+import sttp.tapir.server.PartialServerEndpoint
 
 class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig):
   val listArticles = optionallySecureEndpoint.get
@@ -29,7 +32,7 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
     .in(path[String])
     .out(jsonBody[ArticleBody])
 
-  val createArticle =
+  val createArticle: PartialServerEndpoint[String, UserId, CreateArticleReqBody, ErrorInfo, ArticleBody, Any, IO] =
     secureEndpoint.post
       .in("api" / "articles")
       .in(jsonBody[CreateArticleReqBody])

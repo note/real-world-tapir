@@ -1,8 +1,7 @@
 package pl.msitko.realworld.services
 
 import cats.data.EitherT
-import cats.effect.IO
-import pl.msitko.realworld.entities.OtherEntities.ProfileBody
+import pl.msitko.realworld.entities.ProfileBody
 import pl.msitko.realworld.db
 import pl.msitko.realworld.db.{Follow, FollowRepo, UserId, UserRepo}
 import pl.msitko.realworld.endpoints.ErrorInfo
@@ -14,27 +13,27 @@ object ProfileService:
 class ProfileService(followRepo: FollowRepo, userRepo: UserRepo):
   private val userHelper = UserServicesHelper.fromRepo(userRepo)
 
-  def getProfile(userIdOpt: Option[UserId])(profileName: String): IO[Either[ErrorInfo, ProfileBody]] =
-    (for {
-      requestedUserId <- resolveUserName(profileName)
-      user            <- getByUserId(requestedUserId, userIdOpt)
-    } yield ProfileBody.fromDB(user.toAuthor)).value
-
-  def followProfile(userId: UserId)(profileName: String): IO[Either[ErrorInfo, ProfileBody]] =
-    (for {
+  def followProfile(userId: UserId)(profileName: String): Result[ProfileBody] =
+    for {
       userIdToFollow <- resolveUserName(profileName)
       update = db.Follow(follower = userId, followed = userIdToFollow)
       _    <- insertFollow(update)
       user <- userHelper.getById(userIdToFollow, subjectUserId = userId)
-    } yield ProfileBody.fromDB(user.toAuthor)).value
+    } yield ProfileBody.fromDB(user.toAuthor)
 
-  def unfollowProfile(userId: UserId)(profileName: String): IO[Either[ErrorInfo, ProfileBody]] =
-    (for {
+  def getProfile(userIdOpt: Option[UserId])(profileName: String): Result[ProfileBody] =
+    for {
+      requestedUserId <- resolveUserName(profileName)
+      user            <- getByUserId(requestedUserId, userIdOpt)
+    } yield ProfileBody.fromDB(user.toAuthor)
+
+  def unfollowProfile(userId: UserId)(profileName: String): Result[ProfileBody] =
+    for {
       userIdToFollow <- resolveUserName(profileName)
       update = db.Follow(follower = userId, followed = userIdToFollow)
       _    <- deleteFollow(update)
       user <- userHelper.getById(userIdToFollow, subjectUserId = userId)
-    } yield ProfileBody.fromDB(user.toAuthor)).value
+    } yield ProfileBody.fromDB(user.toAuthor)
 
   private def resolveUserName(username: String): Result[UserId] =
     EitherT(userRepo.resolveUsername(username).map {

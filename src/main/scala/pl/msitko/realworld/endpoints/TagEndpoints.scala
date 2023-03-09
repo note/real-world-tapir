@@ -1,7 +1,7 @@
 package pl.msitko.realworld.endpoints
 
 import io.circe.generic.auto.*
-import pl.msitko.realworld.entities.OtherEntities.*
+import pl.msitko.realworld.entities.*
 import sttp.tapir.*
 import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.*
