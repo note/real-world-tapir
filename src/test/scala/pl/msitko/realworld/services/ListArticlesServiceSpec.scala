@@ -1,7 +1,7 @@
 package pl.msitko.realworld.services
 
 import cats.effect.IO
-import pl.msitko.realworld.Entities.Articles
+import pl.msitko.realworld.entities.OtherEntities.Articles
 import pl.msitko.realworld.db.{ArticleQuery, Pagination}
 
 class ListArticlesServiceSpec extends PostgresSpec:

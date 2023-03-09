@@ -2,7 +2,7 @@ package pl.msitko.realworld.endpoints
 
 import io.circe.generic.auto.*
 import pl.msitko.realworld.JwtConfig
-import pl.msitko.realworld.Entities.*
+import pl.msitko.realworld.entities.OtherEntities.*
 import sttp.model.StatusCode
 import sttp.tapir.*
 import sttp.tapir.generic.auto.*

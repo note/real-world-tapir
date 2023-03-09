@@ -1,7 +1,7 @@
 package pl.msitko.realworld.endpoints
 
 import io.circe.generic.auto.*
-import pl.msitko.realworld.Entities.*
+import pl.msitko.realworld.entities.OtherEntities.*
 import pl.msitko.realworld.JwtConfig
 import sttp.model.StatusCode
 import sttp.tapir.*
@@ -21,6 +21,7 @@ class UserEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig):
     .in(jsonBody[RegistrationReqBody])
     .out(jsonBody[UserBody])
     .out(statusCode(StatusCode.Created))
+    .errorOut(statusCode(StatusCode.UnprocessableEntity).and(jsonBody[ErrorInfo.ValidationError]))
 
   val getCurrentUser = secureEndpoint.get
     .in("api" / "user")

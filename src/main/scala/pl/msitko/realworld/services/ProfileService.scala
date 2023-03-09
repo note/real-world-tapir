@@ -2,7 +2,7 @@ package pl.msitko.realworld.services
 
 import cats.data.EitherT
 import cats.effect.IO
-import pl.msitko.realworld.Entities.ProfileBody
+import pl.msitko.realworld.entities.OtherEntities.ProfileBody
 import pl.msitko.realworld.db
 import pl.msitko.realworld.db.{Follow, FollowRepo, UserId, UserRepo}
 import pl.msitko.realworld.endpoints.ErrorInfo

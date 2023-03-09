@@ -6,7 +6,7 @@ import com.dimafeng.testcontainers.munit.fixtures.TestContainersFixtures
 import doobie.Transactor
 import munit.CatsEffectSuite
 import org.testcontainers.utility.DockerImageName
-import pl.msitko.realworld.Entities.{CreateArticleReq, CreateArticleReqBody, RegistrationReqBody, RegistrationUserBody}
+import pl.msitko.realworld.entities.OtherEntities.{CreateArticleReq, CreateArticleReqBody, RegistrationReqBody, RegistrationUserBody}
 import pl.msitko.realworld.db.Pagination
 import pl.msitko.realworld.{DBMigration, JwtConfig}
 

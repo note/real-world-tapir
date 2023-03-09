@@ -64,8 +64,7 @@ class SecuredEndpoints(jwtConfig: JwtConfig):
     )
     .errorOut(
       oneOf[ErrorInfo](
-        oneOfVariant(
-          statusCode(StatusCode.UnprocessableEntity).and(jsonBody[ErrorInfo.ValidationError].description(""))),
+        oneOfVariant(statusCode(StatusCode.UnprocessableEntity).and(jsonBody[ErrorInfo.ValidationError])),
         oneOfVariant(statusCode(StatusCode.NotFound).and(emptyOutputAs(ErrorInfo.NotFound))),
         oneOfVariant(statusCode(StatusCode.Forbidden).and(emptyOutputAs(ErrorInfo.Unauthorized))),
         oneOfVariant(statusCode(StatusCode.Unauthorized).and(emptyOutputAs(ErrorInfo.Unauthenticated))),

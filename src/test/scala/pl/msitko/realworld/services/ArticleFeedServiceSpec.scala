@@ -2,7 +2,7 @@ package pl.msitko.realworld.services
 
 import cats.effect.IO
 import munit.CatsEffectSuite
-import pl.msitko.realworld.Entities.*
+import pl.msitko.realworld.entities.OtherEntities.*
 import pl.msitko.realworld.db.Pagination
 
 class ArticleFeedServiceSpec extends PostgresSpec:

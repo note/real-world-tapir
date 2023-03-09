@@ -4,7 +4,7 @@ import cats.data.Validated.Invalid
 import cats.data.Validated.Valid
 import cats.data.{EitherT, NonEmptyList, ValidatedNec}
 import cats.effect.IO
-import pl.msitko.realworld.Entities.{
+import pl.msitko.realworld.entities.OtherEntities.{
   AddCommentReqBody,
   ArticleBody,
   Articles,
@@ -14,7 +14,8 @@ import pl.msitko.realworld.Entities.{
   CreateArticleReqBody,
   UpdateArticleReqBody
 }
-import pl.msitko.realworld.{db, Entities, Validated}
+import pl.msitko.realworld.*
+import pl.msitko.realworld.{db, Validated}
 import pl.msitko.realworld.db.{
   ArticleId,
   ArticleQuery,
@@ -32,6 +33,7 @@ import pl.msitko.realworld.db.{
 }
 import pl.msitko.realworld.endpoints.ErrorInfo
 import pl.msitko.realworld.endpoints.ErrorInfo.ValidationError
+import pl.msitko.realworld.entities.OtherEntities
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -55,7 +57,7 @@ class ArticleService(
           articleRepo.feed(userId, followedNel, pagination)
         case None =>
           IO.pure(List.empty[FullArticle])
-    } yield Articles.fromArticles(r.map(Entities.Article.fromDB))
+    } yield Articles.fromArticles(r.map(OtherEntities.Article.fromDB))
 
   def listArticles(subjectUserId: Option[UserId], query: ArticleQuery[String], pagination: Pagination): IO[Articles] =
     val resolvedQuery = query.favoritedBy match
@@ -76,7 +78,7 @@ class ArticleService(
     resolvedQuery.flatMap { rq =>
       articleRepo
         .listArticles(rq, pagination, subjectUserId)
-        .map(articles => Articles.fromArticles(articles.map(Entities.Article.fromDB)))
+        .map(articles => Articles.fromArticles(articles.map(OtherEntities.Article.fromDB)))
     }
 
   def getArticle(userIdOpt: Option[UserId])(slug: String): IO[Either[ErrorInfo, ArticleBody]] =
@@ -84,17 +86,12 @@ class ArticleService(
 
   def createArticle(userId: UserId)(reqBody: CreateArticleReqBody): IO[Either[ErrorInfo, ArticleBody]] =
     (for {
-      dbArticle <- toResult(reqBody.toDB(generateSlug(reqBody.article.title), Instant.now()))
+      dbArticle <- reqBody.toDB(generateSlug(reqBody.article.title), Instant.now()).toResult
       tagIds    <- insertTags(dbArticle.tags)
       article   <- insertArticle(dbArticle, userId)
       articleTags = tagIds.map(tagId => ArticleTag(articleId = article.article.id, tagId = tagId))
       _ <- insertArticleTags(articleTags)
     } yield ArticleBody.fromDB(article)).value
-
-  // TODO: move somewhere else:
-  private def toResult[T](in: Validated[T]): Result[T] = in match
-    case Valid(v)   => EitherT.right[ErrorInfo](IO.pure(v))
-    case Invalid(e) => EitherT.left[T](IO.pure(ValidationError.fromNec(e)))
 
   private def insertArticle(article: db.ArticleNoId, userId: UserId): Result[db.FullArticle] =
     EitherT(
