@@ -2,14 +2,17 @@ package pl.msitko.realworld.entities
 
 import pl.msitko.realworld.db
 import pl.msitko.realworld.db.{ArticleId, UserId}
+import pl.msitko.realworld.{Validated, Validation}
 
 import java.time.Instant
 
 final case class AddCommentReq(body: String)
 
 final case class AddCommentReqBody(comment: AddCommentReq):
-  def toDB(authorId: UserId, articleId: ArticleId, now: Instant): db.CommentNoId =
-    db.CommentNoId(authorId = authorId, articleId = articleId, body = comment.body, createdAt = now, updatedAt = now)
+  def toDB(authorId: UserId, articleId: ArticleId, now: Instant): Validated[db.CommentNoId] =
+    Validation.nonEmptyString("comment.body")(comment.body).map { body =>
+      db.CommentNoId(authorId = authorId, articleId = articleId, body = body, createdAt = now, updatedAt = now)
+    }
 
 final case class Comments(comments: List[Comment])
 

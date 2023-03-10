@@ -116,8 +116,8 @@ class ArticleService(
 
   def addComment(userId: UserId)(slug: String, reqBody: AddCommentReqBody): Result[CommentBody] =
     for {
-      article <- getArticleBySlug(slug, userId)
-      comment = reqBody.toDB(userId, article.article.id, Instant.now)
+      article    <- getArticleBySlug(slug, userId)
+      comment    <- reqBody.toDB(userId, article.article.id, Instant.now).toResult
       inserted   <- EitherT.right(commentRepo.insert(comment))
       commentOpt <- EitherT.right(commentRepo.getForCommentId(inserted.id, userId))
       res <- commentOpt match
