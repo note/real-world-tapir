@@ -2,6 +2,7 @@ package pl.msitko.realworld.entities
 
 import pl.msitko.realworld.db
 import pl.msitko.realworld.*
+import cats.implicits.*
 
 final case class AuthenticationReqBodyUser(email: String, password: String)
 final case class AuthenticationReqBody(user: AuthenticationReqBodyUser)
@@ -45,16 +46,28 @@ final case class UpdateUserBody(
 )
 
 final case class UpdateUserReqBody(user: UpdateUserBody):
-  def toDB(existingUser: db.User): db.UpdateUser =
-    db.UpdateUser(
-      email = user.email.getOrElse(existingUser.email),
-      username = user.username.getOrElse(existingUser.username),
-      password = user.password,
-      // TODO: Current treatment of bio and image is problematic in case of nullifying those values as part of update
-      // On the other hand specs don't tell anything explicitly about nullifying. I guess something like following
-      // would make sense:
-      // Omitting value in update request means "no change"
-      // Specifying value to be null explicitly means "change the value to null"
-      bio = user.bio.orElse(existingUser.bio),
-      image = user.image.orElse(existingUser.image)
-    )
+  def toDB(existingUser: db.User): Validated[db.UpdateUser] =
+    (
+      user.email
+        .map(newEmail => Validation.validEmail("user.email")(newEmail))
+        .getOrElse(existingUser.email.validNec),
+      user.username
+        .map(newUserName => Validation.nonEmptyString("user.username")(newUserName))
+        .getOrElse(existingUser.username.validNec),
+      user.password
+        .map(newPassword => Validation.nonEmptyString("user.password")(newPassword))
+        .sequence,
+    ).mapN { (email, username, password) =>
+      db.UpdateUser(
+        email = email,
+        username = username,
+        password = password,
+        // TODO: Current treatment of bio and image is problematic in case of nullifying those values as part of update
+        // On the other hand specs don't tell anything explicitly about nullifying. I guess something like following
+        // would make sense:
+        // Omitting value in update request means "no change"
+        // Specifying value to be null explicitly means "change the value to null"
+        bio = user.bio.orElse(existingUser.bio),
+        image = user.image.orElse(existingUser.image)
+      )
+    }

@@ -17,5 +17,15 @@ package object realworld:
   extension [T](v: Validated[T]) def toResult: EitherT[IO, ErrorInfo.ValidationError, T] = toRes(v)
 
   object Validation:
+    // Copied from https://itecnote.com/tecnote/r-validate-email-one-liner-in-scala/
+    private val emailRegex =
+      """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
+
     def nonEmptyString(fieldName: String)(in: String): Validated[String] =
       if in.isEmpty then (fieldName -> "can't be empty").invalidNec else in.validNec
+
+    def validEmail(fieldName: String)(in: String): Validated[String] =
+      nonEmptyString(fieldName)(in).andThen {
+        case e if emailRegex.findFirstIn(e).isEmpty => (fieldName -> "is not a valid email").invalidNec
+        case e                                      => e.validNec
+      }

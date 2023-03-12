@@ -17,9 +17,6 @@ object UserService:
 
 class UserService(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   private val helper = UserServicesHelper.fromRepo(repo)
-  // Copied from https://itecnote.com/tecnote/r-validate-email-one-liner-in-scala/
-  private val emailRegex =
-    """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
 
   def authentication(reqBody: AuthenticationReqBody) =
     val encodedPassword = reqBody.user.password
@@ -50,26 +47,18 @@ class UserService(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   def updateUser(userId: UserId)(reqBody: UpdateUserReqBody): Result[UserBody] =
     for {
       existingUser <- helper.getById(userId, userId)
-      updateObj = reqBody.toDB(existingUser.user)
-      _           <- helper.updateUser(updateObj, userId)
-      updatedUser <- helper.getById(userId, userId)
+      updateObj    <- reqBody.toDB(existingUser.user).toResult
+      _            <- helper.updateUser(updateObj, userId)
+      updatedUser  <- helper.getById(userId, userId)
     } yield UserBody.fromDB(updatedUser.user, JWT.generateJwtToken(userId.toString, jwtConfig))
 
   private def validateRegistration(reqBody: RegistrationReqBody): Validated[db.UserNoId] =
     val user = reqBody.user
-
-    def validateEmail: Validated[String] =
-      Validation.nonEmptyString("user.email")(user.email).andThen {
-        case e if emailRegex.findFirstIn(e).isEmpty => ("user.email" -> "is not a valid email").invalidNec
-        case e                                      => e.validNec
-      }
-    def validateUsername: Validated[String] =
-      Validation.nonEmptyString("user.username")(user.username)
-    def validatePassword: Validated[String] =
-      Validation.nonEmptyString("user.password")(user.password)
-
-    (validateEmail, validateUsername, validatePassword).mapN((email, username, _) =>
-      db.UserNoId(email = email, username = username, bio = user.bio, image = user.image))
+    (
+      Validation.validEmail("user.email")(user.email),
+      Validation.nonEmptyString("user.username")(user.username),
+      Validation.nonEmptyString("user.password")(user.password),
+    ).mapN((email, username, _) => db.UserNoId(email = email, username = username, bio = user.bio, image = user.image))
 
 trait UserServicesHelper:
   def getById(userId: UserId, subjectUserId: UserId): Result[db.FullUser]
