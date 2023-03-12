@@ -25,7 +25,7 @@ object Main extends IOApp:
       appConfig <- AppConfig.loadConfig
       dbConfig = appConfig.db
       jdbcURL  = s"jdbc:postgresql://${dbConfig.host}:${dbConfig.port}/${dbConfig.dbName}"
-      _ <- DBMigration.migrate(jdbcURL, dbConfig.username, dbConfig.password)
+//      _ <- DBMigration.migrate(jdbcURL, dbConfig.username, dbConfig.password)
       transactor: Transactor[IO] = Transactor.fromDriverManager[IO](
         "org.postgresql.Driver",
         jdbcURL,
