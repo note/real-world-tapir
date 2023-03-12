@@ -161,6 +161,7 @@ class ArticleService(
   def unfavoriteArticle(userId: UserId)(slug: String): Result[ArticleBody] =
     for {
       article        <- getArticleBySlug(slug, userId)
+      _              <- EitherT.right(articleRepo.deleteFavorite(article.article.id, userId))
       updatedArticle <- getArticleBodyById(article.article.id, userId)
     } yield updatedArticle
 
