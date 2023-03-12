@@ -102,8 +102,8 @@ class ArticleService(
   def updateArticle(userId: UserId)(slug: String, reqBody: UpdateArticleReqBody): Result[ArticleBody] =
     for {
       existingArticle <- getOwnedArticle(slug, userId)
-      changeObj = reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle.article)
-      _ <- EitherT.right(articleRepo.update(changeObj, existingArticle.article.id))
+      changeObj       <- reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle.article).toResult
+      _               <- EitherT.right(articleRepo.update(changeObj, existingArticle.article.id))
       // This getArticleBodyById is a bit lazy, we could avoid another DB query by composing existing and changeObj
       fetchedArticle <- getArticleBodyById(existingArticle.article.id, userId)
     } yield fetchedArticle

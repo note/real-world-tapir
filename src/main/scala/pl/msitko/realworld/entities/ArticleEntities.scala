@@ -10,13 +10,25 @@ final case class UpdateArticleReq(title: Option[String], description: Option[Str
 final case class CreateArticleReq(title: String, description: String, body: String, tagList: List[String])
 
 final case class UpdateArticleReqBody(article: UpdateArticleReq):
-  def toDB(slug: Option[String], existingArticle: db.Article): db.UpdateArticle =
-    db.UpdateArticle(
-      slug = slug.getOrElse(existingArticle.slug),
-      title = article.title.getOrElse(existingArticle.title),
-      description = article.description.getOrElse(existingArticle.description),
-      body = article.body.getOrElse(existingArticle.body),
-    )
+  def toDB(slug: Option[String], existingArticle: db.Article): Validated[db.UpdateArticle] =
+    (
+      article.title
+        .map(newTitle => Validation.nonEmptyString("article.title")(newTitle))
+        .getOrElse(existingArticle.title.validNec),
+      article.description
+        .map(newDescription => Validation.nonEmptyString("article.description")(newDescription))
+        .getOrElse(existingArticle.description.validNec),
+      article.body
+        .map(newBody => Validation.nonEmptyString("article.body")(newBody))
+        .getOrElse(existingArticle.body.validNec)
+    ).mapN { (title, description, body) =>
+      db.UpdateArticle(
+        slug = slug.getOrElse(existingArticle.slug),
+        title = title,
+        description = description,
+        body = body,
+      )
+    }
 
 final case class ArticleBody(article: Article)
 object ArticleBody:
