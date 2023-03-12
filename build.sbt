@@ -1,9 +1,12 @@
 import Common._
 
 lazy val root = (project in file("."))
+  .enablePlugins(BuildInfoPlugin)
   .commonSettings("real-world-tapir", "0.1.0")
   .settings(
-    libraryDependencies ++= Dependencies.compileDeps ++ Dependencies.testDeps
+    libraryDependencies ++= Dependencies.compileDeps ++ Dependencies.testDeps,
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
+    buildInfoPackage := "pl.msitko.realworld.buildinfo"
   )
 
 assembly / assemblyMergeStrategy := {

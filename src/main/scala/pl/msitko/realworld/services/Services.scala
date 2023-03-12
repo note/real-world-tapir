@@ -3,8 +3,8 @@ package pl.msitko.realworld.services
 import cats.effect.IO
 import doobie.util.transactor.Transactor
 import pl.msitko.realworld.AppConfig
-import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, TagRepo, UserRepo}
-import pl.msitko.realworld.endpoints.{ArticleEndpoints, ProfileEndpoints, UserEndpoints}
+import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, HealthRepo, TagRepo, UserRepo}
+import pl.msitko.realworld.endpoints.{ArticleEndpoints, HealthEndpoint, ProfileEndpoints, UserEndpoints}
 import pl.msitko.realworld.wiring.{ArticleWiring, ProfileWiring, TagWiring, UserWiring}
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics
@@ -32,8 +32,11 @@ object Services:
     val tagService       = TagService(repos)
     val tagEndpointsImpl = TagWiring.endpoints(tagService)
 
+    val healthService      = HealthService(repos)
+    val healthEndpointImpl = HealthEndpoint.health.serverLogicSuccess(_ => healthService.getHealth)
+
     val apiServices: List[ServerEndpoint[Any, IO]] =
-      articleEndpointsImpl ++ profileEndpointsImpl ++ userEndpointsImpl ++ tagEndpointsImpl
+      articleEndpointsImpl ++ profileEndpointsImpl ++ userEndpointsImpl ++ tagEndpointsImpl ++ List(healthEndpointImpl)
 
     // TODO: Fix
 //    Caused by: java.lang.NullPointerException
@@ -53,6 +56,7 @@ final case class Repos(
     userRepo: UserRepo,
     followRepo: FollowRepo,
     tagRepo: TagRepo,
+    healthRepo: HealthRepo,
 )
 
 object Repos:
@@ -62,5 +66,6 @@ object Repos:
       commentRepo = new CommentRepo(transactor),
       userRepo = new UserRepo(transactor),
       followRepo = new FollowRepo(transactor),
-      tagRepo = new TagRepo(transactor)
+      tagRepo = new TagRepo(transactor),
+      healthRepo = new HealthRepo(transactor),
     )
