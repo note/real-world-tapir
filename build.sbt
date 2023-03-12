@@ -1,8 +1,10 @@
 import Common._
 
+enablePlugins(GitVersioning)
+
 lazy val root = (project in file("."))
   .enablePlugins(BuildInfoPlugin)
-  .commonSettings("real-world-tapir", "0.1.0")
+  .commonSettings("real-world-tapir")
   .settings(
     libraryDependencies ++= Dependencies.compileDeps ++ Dependencies.testDeps,
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
