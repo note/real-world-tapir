@@ -17,7 +17,7 @@ lazy val root = (project in file("."))
   .settings(
     Docker / packageName := "msitko.pl/real-world-tapir",
     packageDescription := "real-world-tapir",
-    dockerBaseImage := "eclipse-temurin:17",
+    dockerBaseImage := "eclipse-temurin:17-jre",
     dockerUpdateLatest := true, // docker:publishLocal will replace the latest tagged image.
     dockerExposedPorts ++= Seq(8080),
     Docker / defaultLinuxInstallLocation := "/opt/realworld",
