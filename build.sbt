@@ -20,7 +20,12 @@ lazy val root = (project in file("."))
     dockerBaseImage := "eclipse-temurin:17",
     dockerUpdateLatest := true, // docker:publishLocal will replace the latest tagged image.
     dockerExposedPorts ++= Seq(8080),
-    Docker / defaultLinuxInstallLocation := "/opt/realworld"
+    Docker / defaultLinuxInstallLocation := "/opt/realworld",
+    dockerBuildCommand := {
+      // use buildx with platform to build supported amd64 images on other CPU architectures
+      // this may require that you have first run 'docker buildx create' to set docker buildx up
+      dockerExecCommand.value ++ Seq("buildx", "build", "--platform=linux/amd64", "--load") ++ dockerBuildOptions.value :+ "."
+    }
   )
 
 assembly / assemblyMergeStrategy := {
