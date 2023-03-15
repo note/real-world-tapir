@@ -28,7 +28,7 @@ object Main extends IOApp with StrictLogging:
       _ <- IO(logger.info(s"Using config: $appConfig"))
       jdbcURL = s"jdbc:postgresql://${dbConfig.host}:${dbConfig.port}/${dbConfig.dbName}"
       _ <- IO(logger.info(s"Using jdbcURL: $jdbcURL"))
-//      _ <- DBMigration.migrate(jdbcURL, dbConfig.username, dbConfig.password)
+      _ <- DBMigration.migrate(jdbcURL, dbConfig.username, dbConfig.password)
       transactor: Transactor[IO] = Transactor.fromDriverManager[IO](
         "org.postgresql.Driver",
         jdbcURL,

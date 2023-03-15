@@ -2,6 +2,7 @@ import sbt._
 
 object Dependencies {
 	val tapirVersion = "1.2.9"
+	val doobieVersion = "1.0.0-RC2"
 
 	val tapir = Seq(
 		"ch.qos.logback"              % "logback-classic"           % "1.4.5",
@@ -16,9 +17,9 @@ object Dependencies {
 		"com.github.pureconfig" 			%% "pureconfig-core" 							% "0.17.2",
 		"com.typesafe.scala-logging" 	%% "scala-logging" 								% "3.9.4",
 		"org.flywaydb" 								%  "flyway-core" 									% "9.15.1",
-		"org.tpolecat" 								%% "doobie-core" 									% "1.0.0-RC2",
-		"org.tpolecat" 								%% "doobie-hikari" 								% "1.0.0-RC2",
-		"org.tpolecat" 								%% "doobie-postgres" 							% "1.0.0-RC2",
+		"org.tpolecat" 								%% "doobie-core" 									% doobieVersion,
+		"org.tpolecat" 								%% "doobie-hikari" 								% doobieVersion,
+		"org.tpolecat" 								%% "doobie-postgres" 							% doobieVersion,
 	)
 
 	val testDeps    = Seq(
