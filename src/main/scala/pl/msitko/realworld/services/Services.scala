@@ -45,10 +45,10 @@ object Services:
 //    .tapir.swagger.SwaggerUI$.< clinit >(SwaggerUI.scala: 15)
 //    .
 //    ..12 more
-//    val docEndpoints: List[ServerEndpoint[Any, IO]] = SwaggerInterpreter()
-//      .fromServerEndpoints[IO](apiServices, "real-world", "1.0.0")
+    val docEndpoints: List[ServerEndpoint[Any, IO]] = SwaggerInterpreter()
+      .fromServerEndpoints[IO](apiServices, "real-world", "1.0.0")
 
-    apiServices ++ List(metricsEndpoint)
+    apiServices ++ List(metricsEndpoint) ++ docEndpoints
 
 final case class Repos(
     articleRepo: ArticleRepo,

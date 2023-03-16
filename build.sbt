@@ -26,6 +26,7 @@ lazy val root = (project in file("."))
       // this may require that you have first run 'docker buildx create' to set docker buildx up
       dockerExecCommand.value ++ Seq("buildx", "build", "--platform=linux/amd64", "--load") ++ dockerBuildOptions.value :+ "."
     }
+//    Revolver.enableDebugging(port = 5050, suspend = true)
   )
 
 assembly / assemblyMergeStrategy := {
