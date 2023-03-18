@@ -81,7 +81,7 @@ class ArticleService(
 
   private def insertArticle(article: db.ArticleNoId, userId: UserId): Result[db.FullArticle] =
     for {
-      article <- EitherT.right(articleRepo.insert(article, userId))
+      article <- EitherT(articleRepo.insert(article, userId))
       fetched <- getArticleById(article.id, userId)
     } yield fetched
 

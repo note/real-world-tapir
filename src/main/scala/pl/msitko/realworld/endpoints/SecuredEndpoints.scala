@@ -1,5 +1,6 @@
 package pl.msitko.realworld.endpoints
 
+import cats.data.NonEmptyChain
 import io.circe.generic.auto.*
 import cats.implicits.*
 import cats.effect.IO
@@ -25,6 +26,8 @@ object ErrorInfo:
     def fromNec(in: cats.data.NonEmptyChain[(String, String)]): ValidationError =
       val errs = in.toChain.toList.groupBy(_._1).map((k, v) => k -> v.map(_._2))
       ValidationError(errs)
+    def fromTuple(in: (String, String)): ValidationError =
+      ValidationError(Map(in._1 -> List(in._2)))
 
 class SecuredEndpoints(jwtConfig: JwtConfig):
   def authLogic(token: String): IO[Either[ErrorInfo, UserId]] =

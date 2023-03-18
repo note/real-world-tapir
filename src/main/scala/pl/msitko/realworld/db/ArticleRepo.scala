@@ -2,13 +2,18 @@ package pl.msitko.realworld.db
 
 import cats.data.NonEmptyList
 import cats.effect.IO
+import com.typesafe.scalalogging.StrictLogging
 import doobie.*
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import doobie.implicits.legacy.instant.*
+import doobie.postgres.sqlstate
+import pl.msitko.realworld.endpoints.ErrorInfo
 
-class ArticleRepo(transactor: Transactor[IO]):
-  def insert(article: ArticleNoId, authorId: UserId): IO[Article] =
+import scala.util.Random
+
+class ArticleRepo(transactor: Transactor[IO]) extends StrictLogging:
+  private def justInsert(article: ArticleNoId, authorId: UserId): IO[Either[ErrorInfo.ValidationError, Article]] =
     sql"""INSERT INTO articles (author_id, slug, title, description, body, created_at, updated_at)
          |VALUES ($authorId, ${article.slug}, ${article.title}, ${article.description}, ${article.body}, ${article.createdAt}, ${article.updatedAt})""".stripMargin.update
       .withUniqueGeneratedKeys[Article](
@@ -20,7 +25,22 @@ class ArticleRepo(transactor: Transactor[IO]):
         "created_at",
         "updated_at",
         "author_id")
+      .attemptSomeSqlState { case sqlstate.class23.UNIQUE_VIOLATION =>
+        ErrorInfo.ValidationError.fromTuple("article.slug" -> "An article with a given slug already exists")
+      }
       .transact(transactor)
+
+  def insert(article: ArticleNoId, authorId: UserId): IO[Either[ErrorInfo, Article]] =
+    justInsert(article, authorId)
+      .flatMap {
+        case Left(err) =>
+          logger.info(s"Couldn't insert article because of slug duplicate: $err for ${article.slug}")
+          val generatedSlug = s"${article.slug}-${Random.alphanumeric.take(7).mkString}"
+          val articleCopy   = article.copy(slug = generatedSlug)
+          justInsert(articleCopy, authorId)
+        case Right(value) =>
+          IO.pure(Right(value))
+      }
 
   def update(ch: UpdateArticle, articleId: ArticleId): IO[Int] =
     sql"""UPDATE articles SET
