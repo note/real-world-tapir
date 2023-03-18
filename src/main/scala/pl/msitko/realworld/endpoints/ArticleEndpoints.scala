@@ -41,43 +41,43 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
 
   val updateArticle = secureEndpoint.put
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article being edited"))
     .in(jsonBody[UpdateArticleReqBody])
     .out(jsonBody[ArticleBody])
 
   val deleteArticle = secureEndpoint.delete
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article being edited"))
     .out(jsonBody[Unit])
 
   val addComment = secureEndpoint.post
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article"))
     .in("comments")
     .in(jsonBody[AddCommentReqBody])
     .out(jsonBody[CommentBody])
 
   val getComments = optionallySecureEndpoint.get
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article"))
     .in("comments")
     .out(jsonBody[Comments])
 
   val deleteComment = secureEndpoint.delete
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article"))
     .in("comments")
-    .in(path[Int])
+    .in(path[Int].name("commentId").description("id of the comment"))
     .out(jsonBody[Unit])
 
   val favoriteArticle = secureEndpoint.post
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article"))
     .in("favorite")
     .out(jsonBody[ArticleBody])
 
   val unfavoriteArticle = secureEndpoint.delete
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article"))
     .in("favorite")
     .out(jsonBody[ArticleBody])
