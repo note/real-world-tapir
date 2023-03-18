@@ -1,6 +1,6 @@
 package pl.msitko.realworld.services
 
-import cats.data.EitherT
+import cats.data.{EitherT, NonEmptyChain}
 import cats.effect.IO
 import cats.syntax.all.*
 import com.typesafe.scalalogging.StrictLogging
@@ -32,8 +32,12 @@ class UserService(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   def registration(reqBody: RegistrationReqBody): EitherT[IO, ErrorInfo.ValidationError, (db.User, String)] =
     val password = reqBody.user.password
     for {
-      dbUser   <- validateRegistration(reqBody).toResult
-      inserted <- EitherT.right(repo.insert(dbUser, password))
+      dbUser <- validateRegistration(reqBody).toResult
+      inserted <- EitherT(
+        repo
+          .insert(dbUser, password)
+          .map(_.left.map(s =>
+            ErrorInfo.ValidationError.fromNec(NonEmptyChain("user.username" -> s, "user.email" -> s)))))
     } yield inserted -> JWT.generateJwtToken(inserted.id.toString, jwtConfig)
 
   def getCurrentUser(userId: UserId): IO[Either[ErrorInfo.NotFound.type, UserBody]] =

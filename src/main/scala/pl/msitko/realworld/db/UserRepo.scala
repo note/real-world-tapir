@@ -3,11 +3,15 @@ package pl.msitko.realworld.db
 import cats.effect.IO
 import doobie.*
 import doobie.implicits.*
+import doobie.postgres._
 
 class UserRepo(transactor: Transactor[IO]):
-  def insert(user: UserNoId, password: String): IO[User] =
+  def insert(user: UserNoId, password: String): IO[Either[String, User]] =
     sql"INSERT INTO public.users (email, password, username, bio, image) VALUES (${user.email}, crypt($password, gen_salt('bf', 11)), ${user.username}, ${user.bio}, ${user.image})".update
       .withUniqueGeneratedKeys[User]("id", "email", "username", "bio", "image")
+      .attemptSomeSqlState { case sqlstate.class23.UNIQUE_VIOLATION =>
+        "Either email or username already exists"
+      }
       .transact(transactor)
 
   def authenticate(email: String, password: String): IO[Option[User]] =
