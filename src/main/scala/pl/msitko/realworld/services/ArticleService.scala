@@ -73,7 +73,7 @@ class ArticleService(
 
   def createArticle(userId: UserId)(reqBody: CreateArticleReqBody): Result[ArticleBody] =
     for {
-      dbArticle <- reqBody.toDB(reqBody.article.title, Instant.now()).toResult
+      dbArticle <- reqBody.toDB(generateSlug(reqBody.article.title), Instant.now()).toResult
       tagIds    <- insertTags(dbArticle.tags)
       article   <- insertArticle(dbArticle, userId)
       articleTags = tagIds.map(tagId => db.ArticleTag(articleId = article.article.id, tagId = tagId))
@@ -103,7 +103,7 @@ class ArticleService(
   def updateArticle(userId: UserId)(slug: String, reqBody: UpdateArticleReqBody): Result[ArticleBody] =
     for {
       existingArticle <- getOwnedArticle(slug, userId)
-      changeObj       <- reqBody.toDB(reqBody.article.title, existingArticle.article).toResult
+      changeObj       <- reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle.article).toResult
       _               <- EitherT(articleRepo.update(changeObj, existingArticle.article.id))
       // This getArticleBodyById is a bit lazy, we could avoid another DB query by composing existing and changeObj
       fetchedArticle <- getArticleBodyById(existingArticle.article.id, userId)
@@ -166,6 +166,9 @@ class ArticleService(
       _              <- EitherT.right(articleRepo.deleteFavorite(article.article.id, userId))
       updatedArticle <- getArticleBodyById(article.article.id, userId)
     } yield updatedArticle
+
+  private def generateSlug(title: String): String =
+    URLEncoder.encode(title, StandardCharsets.UTF_8)
 
   private def getArticleById(articleId: ArticleId, userId: UserId): Result[db.FullArticle] =
     EitherT(articleRepo.getById(articleId, userId).map {
