@@ -85,4 +85,10 @@ object UserServicesHelper:
         })
 
       override def updateUser(updateObj: db.UpdateUser, userId: UserId): Result[Unit] =
-        EitherT(userRepo.updateUser(updateObj, userId).map(_ => Right(())))
+        EitherT(
+          userRepo
+            .updateUser(updateObj, userId)
+            .map(
+              _.fold[Either[ErrorInfo, Unit]](
+                s => ErrorInfo.ValidationError.fromNec(NonEmptyChain("user.username" -> s, "user.email" -> s)).asLeft,
+                _ => ().asRight)))
