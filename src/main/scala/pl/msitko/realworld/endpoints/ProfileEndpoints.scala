@@ -12,15 +12,18 @@ class ProfileEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
     .in("api" / "profiles")
     .in(path[String].name("userId"))
     .out(jsonBody[ProfileBody])
+    .tag("profiles")
 
   val followProfile = secureEndpoint.post
     .in("api" / "profiles")
     .in(path[String].name("userId"))
     .in("follow")
     .out(jsonBody[ProfileBody])
+    .tag("profiles")
 
   val unfollowProfile = secureEndpoint.delete
     .in("api" / "profiles")
     .in(path[String].name("userId"))
     .in("follow")
     .out(jsonBody[ProfileBody])
+    .tag("profiles")
