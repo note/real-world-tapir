@@ -82,7 +82,7 @@ class ArticleService(
 
   private def insertArticle(article: db.ArticleNoId, userId: UserId): Result[db.FullArticle] =
     for {
-      article <- EitherT(articleRepo.insert(article, userId))
+      article <- EitherT.right(articleRepo.insert(article, userId))
       fetched <- getArticleById(article.id, userId)
     } yield fetched
 
@@ -104,7 +104,7 @@ class ArticleService(
     for {
       existingArticle <- getOwnedArticle(slug, userId)
       changeObj       <- reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle.article).toResult
-      _               <- EitherT(articleRepo.update(changeObj, existingArticle.article.id))
+      _               <- EitherT.right(articleRepo.update(changeObj, existingArticle.article.id))
       // This getArticleBodyById is a bit lazy, we could avoid another DB query by composing existing and changeObj
       fetchedArticle <- getArticleBodyById(existingArticle.article.id, userId)
     } yield fetchedArticle

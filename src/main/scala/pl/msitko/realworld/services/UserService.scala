@@ -32,12 +32,8 @@ class UserService(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   def registration(reqBody: RegistrationReqBody): EitherT[IO, ErrorInfo.ValidationError, (db.User, String)] =
     val password = reqBody.user.password
     for {
-      dbUser <- validateRegistration(reqBody).toResult
-      inserted <- EitherT(
-        repo
-          .insert(dbUser, password)
-          .map(_.left.map(s =>
-            ErrorInfo.ValidationError.fromNec(NonEmptyChain("user.username" -> s, "user.email" -> s)))))
+      dbUser   <- validateRegistration(reqBody).toResult
+      inserted <- EitherT.right(repo.insert(dbUser, password))
     } yield inserted -> JWT.generateJwtToken(inserted.id.toString, jwtConfig)
 
   def getCurrentUser(userId: UserId): IO[Either[ErrorInfo.NotFound.type, UserBody]] =
@@ -85,10 +81,7 @@ object UserServicesHelper:
         })
 
       override def updateUser(updateObj: db.UpdateUser, userId: UserId): Result[Unit] =
-        EitherT(
+        EitherT.right(
           userRepo
             .updateUser(updateObj, userId)
-            .map(
-              _.fold[Either[ErrorInfo, Unit]](
-                s => ErrorInfo.ValidationError.fromNec(NonEmptyChain("user.username" -> s, "user.email" -> s)).asLeft,
-                _ => ().asRight)))
+            .map(_ => ()))
