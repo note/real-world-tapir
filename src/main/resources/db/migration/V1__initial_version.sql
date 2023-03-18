@@ -38,7 +38,7 @@ CREATE TABLE favorites (
 
 CREATE TABLE tags (
     id          uuid        NOT NULL DEFAULT uuid_generate_v4(),
-    tag         VARCHAR     NOT NULL,
+    tag         VARCHAR     NOT NULL UNIQUE,
     PRIMARY KEY(id)
 );
 

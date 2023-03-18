@@ -12,7 +12,8 @@ final case class ArticleTag(
 
 class TagRepo(transactor: Transactor[IO]):
   def upsertTags(tags: NonEmptyList[String]): IO[List[TagId]] =
-    val q = fr"INSERT INTO tags (tag) " ++ Fragments.values(tags)
+    val q =
+      fr"INSERT INTO tags (tag) " ++ Fragments.values(tags) ++ fr" ON CONFLICT (tag) DO UPDATE SET tag = EXCLUDED.tag"
     q.update
       .withGeneratedKeys[TagId](
         "id"
