@@ -79,7 +79,11 @@ class ArticleRepo(transactor: Transactor[IO]) extends StrictLogging:
     sql"DELETE FROM articles WHERE slug=$slug".update.run.transact(transactor)
 
   def insertFavorite(articleId: ArticleId, userId: UserId): IO[Int] =
-    sql"INSERT INTO favorites (article_id, user_id) VALUES ($articleId, $userId)".update.run.transact(transactor)
+    sql"INSERT INTO favorites (article_id, user_id) VALUES ($articleId, $userId)".update.run
+      .exceptSomeSqlState { case sqlstate.class23.UNIQUE_VIOLATION =>
+        doobie.free.connection.pure(0)
+      }
+      .transact(transactor)
 
   def deleteFavorite(articleId: ArticleId, userId: UserId): IO[Int] =
     sql"DELETE FROM favorites WHERE article_id=$articleId AND user_id=$userId".update.run.transact(transactor)

@@ -152,11 +152,12 @@ class ArticleService(
   def favoriteArticle(userId: UserId)(slug: String): Result[ArticleBody] =
     for {
       article <- getArticleBySlug(slug, userId)
-      articleBody = ArticleBody.fromDB(article)
-      updatedArticle = articleBody.copy(article =
-        articleBody.article.copy(favorited = true, favoritesCount = articleBody.article.favoritesCount + 1))
-      _ <- EitherT.right(articleRepo.insertFavorite(article.article.id, userId))
-    } yield updatedArticle
+      articleBody    = ArticleBody.fromDB(article)
+      updatedArticle = articleBody.copy(article = articleBody.article.copy(favorited = true))
+      increment <- EitherT.right(articleRepo.insertFavorite(article.article.id, userId))
+      updatedArticle2 = updatedArticle.copy(article =
+        articleBody.article.copy(favoritesCount = articleBody.article.favoritesCount + increment))
+    } yield updatedArticle2
 
   def unfavoriteArticle(userId: UserId)(slug: String): Result[ArticleBody] =
     for {
