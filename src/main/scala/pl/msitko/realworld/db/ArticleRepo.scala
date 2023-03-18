@@ -30,19 +30,20 @@ class ArticleRepo(transactor: Transactor[IO]) extends StrictLogging:
       }
       .transact(transactor)
 
+  private def generateSlug(slug: String): String = s"$slug-${Random.alphanumeric.take(7).mkString}"
+
   def insert(article: ArticleNoId, authorId: UserId): IO[Either[ErrorInfo, Article]] =
     justInsert(article, authorId)
       .flatMap {
         case Left(err) =>
-          logger.info(s"Couldn't insert article because of slug duplicate: $err for ${article.slug}")
-          val generatedSlug = s"${article.slug}-${Random.alphanumeric.take(7).mkString}"
-          val articleCopy   = article.copy(slug = generatedSlug)
+          logger.info(s"Couldn't insert an article because of slug duplicate: $err for ${article.slug}")
+          val articleCopy = article.copy(slug = generateSlug(article.slug))
           justInsert(articleCopy, authorId)
         case Right(value) =>
           IO.pure(Right(value))
       }
 
-  def update(ch: UpdateArticle, articleId: ArticleId): IO[Int] =
+  private def justUpdate(ch: UpdateArticle, articleId: ArticleId): IO[Either[ErrorInfo.ValidationError, Int]] =
     sql"""UPDATE articles SET
          |slug = ${ch.slug},
          |title = ${ch.title},
@@ -50,7 +51,22 @@ class ArticleRepo(transactor: Transactor[IO]) extends StrictLogging:
          |body = ${ch.body},
          |updated_at = NOW()
          |WHERE id=$articleId
-       """.stripMargin.update.run.transact(transactor)
+       """.stripMargin.update.run
+      .attemptSomeSqlState { case sqlstate.class23.UNIQUE_VIOLATION =>
+        ErrorInfo.ValidationError.fromTuple("article.slug" -> "An article with a given slug already exists")
+      }
+      .transact(transactor)
+
+  def update(ch: UpdateArticle, articleId: ArticleId): IO[Either[ErrorInfo.ValidationError, Int]] =
+    justUpdate(ch, articleId)
+      .flatMap {
+        case Left(err) =>
+          logger.info(s"Couldn't update an article because of slug duplicate: $err for $ch")
+          val updatedChange = ch.copy(slug = generateSlug(ch.slug))
+          justUpdate(updatedChange, articleId)
+        case Right(value) =>
+          IO.pure(Right(value))
+      }
 
   def getBySlug(slug: String, subjectUserId: UserId): IO[Option[FullArticle]] =
     (for {

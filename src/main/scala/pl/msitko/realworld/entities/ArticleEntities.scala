@@ -2,6 +2,7 @@ package pl.msitko.realworld.entities
 
 import cats.syntax.all.*
 import pl.msitko.realworld.{db, Validated, Validation}
+import sttp.model.Uri
 
 import java.time.Instant
 
@@ -51,7 +52,7 @@ final case class Article(
 object Article:
   def fromDB(dbArticle: db.FullArticle): Article =
     Article(
-      slug = dbArticle.article.slug,
+      slug = Uri.unsafeParse(dbArticle.article.slug).toString,
       title = dbArticle.article.title,
       description = dbArticle.article.description,
       body = dbArticle.article.body,

@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependencies {
-	val tapirVersion = "1.2.9"
+	val tapirVersion = "1.2.10"
 	val doobieVersion = "1.0.0-RC2"
 
 	val tapir = Seq(
@@ -10,7 +10,7 @@ object Dependencies {
 		"com.softwaremill.sttp.tapir" %% "tapir-json-circe"         % tapirVersion,
 		"com.softwaremill.sttp.tapir" %% "tapir-prometheus-metrics" % tapirVersion,
 		"com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle"  % tapirVersion,
-		"org.http4s"                  %% "http4s-blaze-server"      % "0.23.13",
+		"org.http4s"                  %% "http4s-blaze-server"      % "0.23.14",
   	)
 	val compileDeps = tapir ++ Seq(
 		"com.github.jwt-scala" 				%% "jwt-circe" 										% "9.1.2",
