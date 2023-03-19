@@ -2,10 +2,30 @@ package pl.msitko.realworld.services
 
 import cats.data.{EitherT, NonEmptyList}
 import cats.effect.IO
-import pl.msitko.realworld.entities.{AddCommentReqBody, Article, ArticleBody, Articles, Comment, CommentBody, Comments, CreateArticleReqBody, UpdateArticleReqBody}
+import pl.msitko.realworld.entities.{
+  AddCommentReqBody,
+  Article,
+  ArticleBody,
+  Articles,
+  Comment,
+  CommentBody,
+  Comments,
+  CreateArticleReqBody,
+  UpdateArticleReqBody
+}
 import pl.msitko.realworld.*
 import pl.msitko.realworld.db
-import pl.msitko.realworld.db.{ArticleId, ArticleRepo, CommentRepo, FollowRepo, TagId, TagRepo, UserId, UserRepo, articleIdMeta}
+import pl.msitko.realworld.db.{
+  articleIdMeta,
+  ArticleId,
+  ArticleRepo,
+  CommentRepo,
+  FollowRepo,
+  TagId,
+  TagRepo,
+  UserId,
+  UserRepo
+}
 import pl.msitko.realworld.endpoints.ErrorInfo
 import sttp.model.Uri
 

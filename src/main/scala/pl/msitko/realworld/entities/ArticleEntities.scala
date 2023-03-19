@@ -66,20 +66,15 @@ object Article:
 
 final case class CreateArticleReqBody(article: CreateArticleReq):
   def toDB(slug: String, now: Instant): Validated[db.ArticleNoId] =
-    (
-      Validation.nonEmptyString("article.title")(article.title),
-      Validation.nonEmptyString("article.description")(article.description),
-      Validation.nonEmptyString("article.body")(article.body)).mapN { (title, description, body) =>
-      db.ArticleNoId(
-        slug = slug,
-        title = title,
-        description = description,
-        body = body,
-        tags = article.tagList,
-        createdAt = now,
-        updatedAt = now,
-      )
-    }
+    db.ArticleNoId(
+      slug = slug,
+      title = article.title,
+      description = article.description,
+      body = article.body,
+      tags = article.tagList,
+      createdAt = now,
+      updatedAt = now,
+    ).validNec
 
 final case class Articles(articles: List[Article], articlesCount: Int)
 object Articles:

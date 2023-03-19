@@ -54,11 +54,7 @@ class UserService(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
 
   private def validateRegistration(reqBody: RegistrationReqBody): Validated[db.UserNoId] =
     val user = reqBody.user
-    (
-      Validation.validEmail("user.email")(user.email),
-      Validation.nonEmptyString("user.username")(user.username),
-      Validation.nonEmptyString("user.password")(user.password),
-    ).mapN((email, username, _) => db.UserNoId(email = email, username = username, bio = user.bio, image = user.image))
+    db.UserNoId(user.email, user.username, user.bio, user.image).validNec
 
 trait UserServicesHelper:
   def getById(userId: UserId, subjectUserId: UserId): Result[db.FullUser]
