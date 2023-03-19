@@ -2,20 +2,10 @@ package pl.msitko.realworld.services
 
 import cats.data.{EitherT, NonEmptyList}
 import cats.effect.IO
-import pl.msitko.realworld.entities.{
-  AddCommentReqBody,
-  Article,
-  ArticleBody,
-  Articles,
-  Comment,
-  CommentBody,
-  Comments,
-  CreateArticleReqBody,
-  UpdateArticleReqBody
-}
+import pl.msitko.realworld.entities.{AddCommentReqBody, Article, ArticleBody, Articles, Comment, CommentBody, Comments, CreateArticleReqBody, UpdateArticleReqBody}
 import pl.msitko.realworld.*
 import pl.msitko.realworld.db
-import pl.msitko.realworld.db.{ArticleId, ArticleRepo, CommentRepo, FollowRepo, TagId, TagRepo, UserId, UserRepo}
+import pl.msitko.realworld.db.{ArticleId, ArticleRepo, CommentRepo, FollowRepo, TagId, TagRepo, UserId, UserRepo, articleIdMeta}
 import pl.msitko.realworld.endpoints.ErrorInfo
 import sttp.model.Uri
 
@@ -182,12 +172,15 @@ class ArticleService(
   private def getOwnedArticle(slug: String, userId: UserId): Result[db.FullArticle] =
     for {
       article <- getArticleBySlug(slug, userId)
-      res <- article match
-        case a if a.article.authorId == userId =>
-          EitherT.rightT[IO, ErrorInfo](a)
-        case _ =>
-          EitherT.leftT[IO, db.FullArticle](ErrorInfo.Unauthorized)
-    } yield res
+      // Introduced bug:
+//      res <- EitherT.rightT[IO, ErrorInfo](article)
+      // Correct code:
+//      res <- article match
+//        case a if a.article.authorId == userId =>
+//          EitherT.rightT[IO, ErrorInfo](a)
+//        case _ =>
+//          EitherT.leftT[IO, db.FullArticle](ErrorInfo.Unauthorized)
+    } yield article
 
   private def getBySlug(slug: String, subjectUserId: Option[UserId]) =
     subjectUserId match
