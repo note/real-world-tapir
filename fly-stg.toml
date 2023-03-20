@@ -7,7 +7,7 @@ primary_region = "ams"
 processes = []
 
 [build]
-  image = "msitko.pl/real-world-tapir:latest"
+  image = "msitko.pl/real-world-tapir:stg"
 
 [env]
 
