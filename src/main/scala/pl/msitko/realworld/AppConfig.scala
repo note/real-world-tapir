@@ -35,4 +35,7 @@ final case class JwtConfig(
     expiration: FiniteDuration
 ) derives ConfigReader:
   override def toString: String =
-    s"JwtConfig(secret: <masked>, expiration: $expiration)"
+    if (secret.length > 64)
+      s"JwtConfig(secret: ${secret.take(4)}..., expiration: $expiration)"
+    else
+      s"JwtConfig(secret: <masked>, expiration: $expiration)"
