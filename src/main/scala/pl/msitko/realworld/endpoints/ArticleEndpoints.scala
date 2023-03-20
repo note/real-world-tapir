@@ -84,8 +84,8 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
     .in("api" / "articles")
     .in(path[String].name("slug").description("slug of the article"))
     .in("favorite")
-    .out(statusCode(StatusCode.Created))
     .out(jsonBody[ArticleBody])
+    .out(statusCode(StatusCode.Created))
     .tag("articles")
 
   val unfavoriteArticle = secureEndpoint.delete
