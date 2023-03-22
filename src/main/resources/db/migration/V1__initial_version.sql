@@ -31,7 +31,8 @@ CREATE TABLE articles (
 );
 
 CREATE TABLE favorites (
-    article_id  uuid        NOT NULL REFERENCES articles(id),
+    article_id  uuid        NOT NULL REFERENCES articles(id)
+                            ON DELETE CASCADE,
     user_id     uuid        NOT NULL REFERENCES users(id),
     PRIMARY KEY(article_id, user_id)
 );
@@ -43,7 +44,8 @@ CREATE TABLE tags (
 );
 
 CREATE TABLE articles_tags (
-    article_id uuid NOT NULL REFERENCES articles(id),
+    article_id uuid NOT NULL REFERENCES articles(id)
+                    ON DELETE CASCADE,
     tag_id     uuid NOT NULL REFERENCES tags(id),
     PRIMARY KEY(article_id, tag_id)
 );
@@ -53,7 +55,8 @@ CREATE TABLE comments (
     -- hence SERIAL
     id          SERIAL      NOT NULL,
     author_id   uuid        NOT NULL REFERENCES users(id),
-    article_id  uuid        NOT NULL REFERENCES articles(id),
+    article_id  uuid        NOT NULL REFERENCES articles(id)
+                                     ON DELETE CASCADE,
     body        TEXT        NOT NULL,
     created_at  TIMESTAMP   NOT NULL,
     updated_at  TIMESTAMP   NOT NULL,
