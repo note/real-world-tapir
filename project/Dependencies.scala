@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependencies {
-	val tapirVersion = "1.2.9"
+	val tapirVersion = "1.4.0"
 
 	val tapir = Seq(
 		"ch.qos.logback"              % "logback-classic"           % "1.4.5",
