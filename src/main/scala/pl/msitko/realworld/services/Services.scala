@@ -3,8 +3,8 @@ package pl.msitko.realworld.services
 import cats.effect.IO
 import doobie.util.transactor.Transactor
 import pl.msitko.realworld.AppConfig
-import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, TagRepo, UserRepo}
-import pl.msitko.realworld.endpoints.{ArticleEndpoints, ProfileEndpoints, UserEndpoints}
+import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, HealthRepo, TagRepo, UserRepo}
+import pl.msitko.realworld.endpoints.{ArticleEndpoints, HealthEndpoint, ProfileEndpoints, UserEndpoints}
 import pl.msitko.realworld.wiring.{ArticleWiring, ProfileWiring, TagWiring, UserWiring}
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics
@@ -32,20 +32,16 @@ object Services:
     val tagService       = TagService(repos)
     val tagEndpointsImpl = TagWiring.endpoints(tagService)
 
+    val healthService      = HealthService(repos)
+    val healthEndpointImpl = HealthEndpoint.health.serverLogicSuccess(_ => healthService.getHealth)
+
     val apiServices: List[ServerEndpoint[Any, IO]] =
-      articleEndpointsImpl ++ profileEndpointsImpl ++ userEndpointsImpl ++ tagEndpointsImpl
+      userEndpointsImpl ++ articleEndpointsImpl ++ profileEndpointsImpl ++ tagEndpointsImpl ++ List(healthEndpointImpl)
 
-    // TODO: Fix
-//    Caused by: java.lang.NullPointerException
-//    : Cannot invoke "java.io.InputStream.close()" because "pomProperties" is null
-//    at sttp
-//    .tapir.swagger.SwaggerUI$.< clinit >(SwaggerUI.scala: 15)
-//    .
-//    ..12 more
-//    val docEndpoints: List[ServerEndpoint[Any, IO]] = SwaggerInterpreter()
-//      .fromServerEndpoints[IO](apiServices, "real-world", "1.0.0")
+    val docEndpoints: List[ServerEndpoint[Any, IO]] = SwaggerInterpreter()
+      .fromServerEndpoints[IO](apiServices, "real-world", "1.0.0")
 
-    apiServices ++ List(metricsEndpoint)
+    apiServices ++ List(metricsEndpoint) ++ docEndpoints
 
 final case class Repos(
     articleRepo: ArticleRepo,
@@ -53,6 +49,7 @@ final case class Repos(
     userRepo: UserRepo,
     followRepo: FollowRepo,
     tagRepo: TagRepo,
+    healthRepo: HealthRepo,
 )
 
 object Repos:
@@ -62,5 +59,6 @@ object Repos:
       commentRepo = new CommentRepo(transactor),
       userRepo = new UserRepo(transactor),
       followRepo = new FollowRepo(transactor),
-      tagRepo = new TagRepo(transactor)
+      tagRepo = new TagRepo(transactor),
+      healthRepo = new HealthRepo(transactor),
     )

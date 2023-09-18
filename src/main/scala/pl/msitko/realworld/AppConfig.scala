@@ -26,9 +26,16 @@ final case class DatabaseConfig(
     dbName: String,
     username: String,
     password: String,
-) derives ConfigReader
+) derives ConfigReader:
+  override def toString: String =
+    s"DatabaseConfig(host: $host, port: $port, dbName: $dbName, username: $username, password: <masked>)"
 
 final case class JwtConfig(
     secret: String,
     expiration: FiniteDuration
-) derives ConfigReader
+) derives ConfigReader:
+  override def toString: String =
+    if (secret.length > 64)
+      s"JwtConfig(secret: ${secret.take(4)}..., expiration: $expiration)"
+    else
+      s"JwtConfig(secret: <masked>, expiration: $expiration)"

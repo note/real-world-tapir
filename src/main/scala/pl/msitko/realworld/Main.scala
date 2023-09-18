@@ -1,6 +1,7 @@
 package pl.msitko.realworld
 
 import cats.effect.{ExitCode, IO, IOApp, Resource}
+import com.typesafe.scalalogging.StrictLogging
 import doobie.Transactor
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.server.{Router, Server}
@@ -8,7 +9,7 @@ import pl.msitko.realworld.services.Services
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.http4s.{Http4sServerInterpreter, Http4sServerOptions}
 
-object Main extends IOApp:
+object Main extends IOApp with StrictLogging:
 
   private def routez(services: List[ServerEndpoint[Any, IO]]) =
     val serverOptions: Http4sServerOptions[IO] =
@@ -24,7 +25,9 @@ object Main extends IOApp:
     for {
       appConfig <- AppConfig.loadConfig
       dbConfig = appConfig.db
-      jdbcURL  = s"jdbc:postgresql://${dbConfig.host}:${dbConfig.port}/${dbConfig.dbName}"
+      _ <- IO(logger.info(s"Using config: $appConfig"))
+      jdbcURL = s"jdbc:postgresql://${dbConfig.host}:${dbConfig.port}/${dbConfig.dbName}"
+      _ <- IO(logger.info(s"Using jdbcURL: $jdbcURL"))
       _ <- DBMigration.migrate(jdbcURL, dbConfig.username, dbConfig.password)
       transactor: Transactor[IO] = Transactor.fromDriverManager[IO](
         "org.postgresql.Driver",
