@@ -31,11 +31,3 @@ lazy val root = (project in file("."))
     )
 //    Revolver.enableDebugging(port = 5050, suspend = true)
   )
-
-assembly / assemblyMergeStrategy := {
-  case d if d.endsWith(".jar:module-info.class") => MergeStrategy.first
-  case d if d.endsWith("module-info.class") => MergeStrategy.first
-  case x =>
-    val oldStrategy = (assembly / assemblyMergeStrategy).value
-    oldStrategy(x)
-}

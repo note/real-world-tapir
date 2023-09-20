@@ -14,6 +14,7 @@ jobs:
       - run: sbtn test
       - run: |
           docker-compose up -d db
-          sbtn test docker:publishLocal
+          sbtn test
+          sbtn docker:publishLocal
           docker-compose up -d api
           newman run real-world-extended.postman_collection.json -e local-real-world.postman_environment.json
