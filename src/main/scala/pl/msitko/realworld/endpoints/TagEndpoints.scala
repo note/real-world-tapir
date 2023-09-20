@@ -10,3 +10,4 @@ object TagEndpoints:
   val getTags = endpoint.get
     .in("api" / "tags")
     .out(jsonBody[Tags])
+    .tag("tags")

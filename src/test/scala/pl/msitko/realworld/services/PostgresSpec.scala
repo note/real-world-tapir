@@ -14,7 +14,8 @@ import pl.msitko.realworld.{DBMigration, JwtConfig}
 import scala.concurrent.duration.*
 
 trait PostgresSpec extends CatsEffectSuite with TestContainersFixtures:
-  val postgres = new ForAllContainerFixture(PostgreSQLContainer(DockerImageName.parse("postgres:15-alpine"))) {
+  private val imageName = DockerImageName.parse("postgres:15-alpine")
+  val postgres = new ForAllContainerFixture(PostgreSQLContainer(imageName)) {
     override def afterContainerStart(container: PostgreSQLContainer): Unit = {
       super.afterContainerStart(container)
 

@@ -20,17 +20,20 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
     .in(query[Option[Int]]("limit"))
     .in(query[Option[Int]]("offset"))
     .out(jsonBody[Articles])
+    .tag("articles")
 
   val feedArticles = secureEndpoint.get
     .in("api" / "articles" / "feed")
     .in(query[Option[Int]]("limit"))
     .in(query[Option[Int]]("offset"))
     .out(jsonBody[Articles])
+    .tag("articles")
 
   val getArticle = optionallySecureEndpoint.get
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article"))
     .out(jsonBody[ArticleBody])
+    .tag("articles")
 
   val createArticle: PartialServerEndpoint[String, UserId, CreateArticleReqBody, ErrorInfo, ArticleBody, Any, IO] =
     secureEndpoint.post
@@ -38,46 +41,56 @@ class ArticleEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig)
       .in(jsonBody[CreateArticleReqBody])
       .out(jsonBody[ArticleBody])
       .out(statusCode(StatusCode.Created))
+      .tag("articles")
 
   val updateArticle = secureEndpoint.put
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article being edited"))
     .in(jsonBody[UpdateArticleReqBody])
     .out(jsonBody[ArticleBody])
+    .tag("articles")
 
   val deleteArticle = secureEndpoint.delete
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article being edited"))
     .out(jsonBody[Unit])
+    .tag("articles")
 
   val addComment = secureEndpoint.post
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article"))
     .in("comments")
     .in(jsonBody[AddCommentReqBody])
+    .out(statusCode(StatusCode.Created))
     .out(jsonBody[CommentBody])
+    .tag("comments")
 
   val getComments = optionallySecureEndpoint.get
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article"))
     .in("comments")
     .out(jsonBody[Comments])
+    .tag("comments")
 
   val deleteComment = secureEndpoint.delete
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article"))
     .in("comments")
-    .in(path[Int])
+    .in(path[Int].name("commentId").description("id of the comment"))
     .out(jsonBody[Unit])
+    .tag("comments")
 
   val favoriteArticle = secureEndpoint.post
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article"))
     .in("favorite")
     .out(jsonBody[ArticleBody])
+    .out(statusCode(StatusCode.Created))
+    .tag("articles")
 
   val unfavoriteArticle = secureEndpoint.delete
     .in("api" / "articles")
-    .in(path[String])
+    .in(path[String].name("slug").description("slug of the article"))
     .in("favorite")
     .out(jsonBody[ArticleBody])
+    .tag("articles")

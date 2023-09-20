@@ -13,7 +13,7 @@ jobs:
           apps: sbtn
       - run: sbtn test
       - run: |
-          docker-compose up -d
-          sbtn assembly
-          java -jar target/scala-3.3.0-RC2/real-world-tapir-assembly-0.1.0.jar &
+          docker-compose up -d db
+          sbtn test docker:publishLocal
+          docker-compose up -d api
           newman run real-world-extended.postman_collection.json -e local-real-world.postman_environment.json

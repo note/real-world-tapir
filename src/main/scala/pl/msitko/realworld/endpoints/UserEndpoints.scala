@@ -15,6 +15,7 @@ class UserEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig):
     .out(jsonBody[UserBody])
     .out(statusCode(StatusCode.Created))
     .errorOut(statusCode)
+    .tag("users")
 
   val registration: Endpoint[Unit, RegistrationReqBody, ErrorInfo.ValidationError, UserBody, Any] = endpoint.post
     .in("api" / "users")
@@ -22,12 +23,15 @@ class UserEndpoints(jwtConfig: JwtConfig) extends SecuredEndpoints(jwtConfig):
     .out(jsonBody[UserBody])
     .out(statusCode(StatusCode.Created))
     .errorOut(statusCode(StatusCode.UnprocessableEntity).and(jsonBody[ErrorInfo.ValidationError]))
+    .tag("users")
 
   val getCurrentUser = secureEndpoint.get
     .in("api" / "user")
     .out(jsonBody[UserBody])
+    .tag("users")
 
   val updateUser = secureEndpoint.put
     .in("api" / "user")
     .in(jsonBody[UpdateUserReqBody])
     .out(jsonBody[UserBody])
+    .tag("users")
