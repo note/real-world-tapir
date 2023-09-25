@@ -57,10 +57,11 @@ trait PostgresSpec extends CatsEffectSuite with TestContainersFixtures:
 
   def createTransactor(c: PostgreSQLContainer): Transactor[IO] =
     Transactor.fromDriverManager[IO](
-      "org.postgresql.Driver",
-      c.jdbcUrl,
-      c.username,
-      c.password
+      driver = "org.postgresql.Driver",
+      url = c.jdbcUrl,
+      user = c.username,
+      password = c.password,
+      logHandler = None
     )
 
   protected def ioAssertEquals[A, B, E](
