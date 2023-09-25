@@ -12,7 +12,7 @@ class UpdateArticleSpec extends PostgresSpec:
 
     (for {
       t <- userService.registration(registrationReqBody("userA"))
-      user1Id = t._1.idgst
+      user1Id = t._1.id
       _        <- articleService.createArticle(user1Id)(createArticleReqBody("title1"))
       article2 <- articleService.createArticle(user1Id)(createArticleReqBody("title2"))
       update = UpdateArticleReqBody(article = UpdateArticleReq(title = Some("title1"), description = None, body = None))
