@@ -2,7 +2,6 @@ package pl.msitko.realworld
 
 import cats.data.EitherT
 import cats.effect.IO
-import pl.msitko.realworld.db
 import pl.msitko.realworld.endpoints.ErrorInfo
 
 import java.util.UUID

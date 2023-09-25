@@ -1,6 +1,5 @@
 package pl.msitko.realworld.services
 
-import cats.data.{EitherT, NonEmptyList}
 import pl.msitko.realworld.entities._
 
 class UpdateArticleSpec extends PostgresSpec:
@@ -9,12 +8,11 @@ class UpdateArticleSpec extends PostgresSpec:
     val repos      = Repos.fromTransactor(transactor)
 
     val articleService = ArticleService(repos)
-    val tagsService    = TagService(repos)
     val userService    = UserService(repos, jwtConfig)
 
     (for {
       t <- userService.registration(registrationReqBody("userA"))
-      user1Id = t._1.id
+      user1Id = t._1.idgst
       _        <- articleService.createArticle(user1Id)(createArticleReqBody("title1"))
       article2 <- articleService.createArticle(user1Id)(createArticleReqBody("title2"))
       update = UpdateArticleReqBody(article = UpdateArticleReq(title = Some("title1"), description = None, body = None))

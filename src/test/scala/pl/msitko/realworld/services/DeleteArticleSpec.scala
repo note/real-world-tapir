@@ -13,7 +13,6 @@ class DeleteArticleSpec extends PostgresSpec {
     val repos      = Repos.fromTransactor(transactor)
 
     val articleService = ArticleService(repos)
-    val followService  = ProfileService(repos)
     val userService    = UserService(repos, jwtConfig)
 
     (for {

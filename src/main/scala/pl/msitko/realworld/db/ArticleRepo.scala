@@ -5,7 +5,6 @@ import cats.effect.IO
 import com.typesafe.scalalogging.StrictLogging
 import doobie.*
 import doobie.implicits.*
-import doobie.postgres.implicits.*
 import doobie.implicits.legacy.instant.*
 import doobie.postgres.sqlstate
 import pl.msitko.realworld.endpoints.ErrorInfo

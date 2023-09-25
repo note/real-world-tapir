@@ -3,7 +3,6 @@ package pl.msitko.realworld.db
 import cats.effect.IO
 import doobie.*
 import doobie.implicits.*
-import doobie.postgres.implicits.*
 import doobie.implicits.legacy.instant.*
 
 class CommentRepo(transactor: Transactor[IO]):

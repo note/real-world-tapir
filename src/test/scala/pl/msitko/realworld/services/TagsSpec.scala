@@ -1,6 +1,6 @@
 package pl.msitko.realworld.services
 
-import cats.data.{EitherT, NonEmptyList}
+import cats.data.EitherT
 
 class TagsSpec extends PostgresSpec:
   test("After inserting 2 articles with the same tags, each tag should appear in the DB just once") {

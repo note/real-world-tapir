@@ -41,7 +41,7 @@ object Main extends IOApp with StrictLogging:
       .withHttpApp(Router("/" -> routez(services)).orNotFound)
       .resource
 
-  override def run(args: List[String]): IO[ExitCode] =
+  def run(args: List[String]): IO[ExitCode] =
     for {
       server <- getServer
       _      <- server.useForever

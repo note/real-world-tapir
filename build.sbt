@@ -1,7 +1,5 @@
 import Common._
 
-enablePlugins(GitVersioning)
-
 lazy val root = (project in file("."))
   .enablePlugins(BuildInfoPlugin)
   .commonSettings("real-world-tapir")

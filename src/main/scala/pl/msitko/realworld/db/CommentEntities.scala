@@ -2,7 +2,6 @@ package pl.msitko.realworld.db
 
 import doobie.*
 import doobie.implicits.*
-import doobie.postgres.implicits.*
 import doobie.implicits.legacy.instant.*
 import java.time.Instant
 

@@ -22,6 +22,7 @@ trait PostgresSpec extends CatsEffectSuite with TestContainersFixtures:
       container.jdbcUrl
 
       DBMigration.migrate(container.jdbcUrl, container.username, container.password).unsafeRunSync()
+      ()
     }
   }
 
