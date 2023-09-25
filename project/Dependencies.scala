@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependencies {
-	val tapirVersion = "1.2.10"
+	val tapirVersion = "1.7.4"
 	val doobieVersion = "1.0.0-RC2"
 
 	val tapir = Seq(
