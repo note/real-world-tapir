@@ -1,8 +1,9 @@
 {
 	"info": {
-		"_postman_id": "2747b2c4-45e9-43ef-8ac1-cb5f50f55c68",
+		"_postman_id": "1f21e6cc-b8c7-49f0-886d-e57ec78dc72f",
 		"name": "real-world-extended",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "19400395"
 	},
 	"item": [
 		{
@@ -1490,11 +1491,11 @@
 							"script": {
 								"exec": [
 									"if (!(environment.isIntegrationTest)) {",
-									"var is200Response = responseCode.code === 200;",
+									"var is201Response = responseCode.code === 201;",
 									"",
-									"tests['Response code is 200 OK'] = is200Response;",
+									"tests['Response code is 201 Created'] = is201Response;",
 									"",
-									"if(is200Response){",
+									"if(is201Response){",
 									"    var responseJSON = JSON.parse(responseBody);",
 									"",
 									"    tests['Response contains \"profile\" property'] = responseJSON.hasOwnProperty('profile');",
