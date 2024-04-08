@@ -2,7 +2,8 @@ import sbt._
 
 object Dependencies {
   val tapirVersion  = "1.8.2"
-  val doobieVersion = "1.0.0-RC4"
+  val doobieVersion = "1.0.0-RC5"
+  val flywayVersion = "10.11.0"
 
   val tapir = Seq(
     "ch.qos.logback"               % "logback-classic"          % "1.4.11",
@@ -10,16 +11,17 @@ object Dependencies {
     "com.softwaremill.sttp.tapir" %% "tapir-json-circe"         % tapirVersion,
     "com.softwaremill.sttp.tapir" %% "tapir-prometheus-metrics" % tapirVersion,
     "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle"  % tapirVersion,
-    "org.http4s"                  %% "http4s-blaze-server"      % "0.23.15",
+    "org.http4s"                  %% "http4s-blaze-server"      % "0.23.16",
   )
   val compileDeps = tapir ++ Seq(
-    "com.github.jwt-scala"       %% "jwt-circe"       % "9.4.4",
-    "com.github.pureconfig"      %% "pureconfig-core" % "0.17.4",
-    "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.5",
-    "org.flywaydb"                % "flyway-core"     % "9.22.3",
-    "org.tpolecat"               %% "doobie-core"     % doobieVersion,
-    "org.tpolecat"               %% "doobie-hikari"   % doobieVersion,
-    "org.tpolecat"               %% "doobie-postgres" % doobieVersion,
+    "com.github.jwt-scala"       %% "jwt-circe"                   % "10.0.0",
+    "com.github.pureconfig"      %% "pureconfig-core"             % "0.17.6",
+    "com.typesafe.scala-logging" %% "scala-logging"               % "3.9.5",
+    "org.flywaydb"                % "flyway-core"                 % flywayVersion,
+    "org.flywaydb"                % "flyway-database-postgresql"  % flywayVersion,
+    "org.tpolecat"               %% "doobie-core"                 % doobieVersion,
+    "org.tpolecat"               %% "doobie-hikari"               % doobieVersion,
+    "org.tpolecat"               %% "doobie-postgres"             % doobieVersion,
   )
 
   val testDeps = Seq(
