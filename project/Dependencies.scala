@@ -1,9 +1,10 @@
 import sbt._
 
 object Dependencies {
-  val tapirVersion  = "1.8.2"
+  val tapirVersion  = "1.10.4"
   val doobieVersion = "1.0.0-RC5"
-  val flywayVersion = "10.11.0"
+  // Couldn't update to 10.11.0, as I was getting errors in compile time
+  val flywayVersion = "10.9.0"
 
   val tapir = Seq(
     "ch.qos.logback"               % "logback-classic"          % "1.4.11",
@@ -25,8 +26,8 @@ object Dependencies {
   )
 
   val testDeps = Seq(
-    "com.dimafeng"  %% "testcontainers-scala-postgresql" % "0.41.0"    % Test,
-    "com.dimafeng"  %% "testcontainers-scala-munit"      % "0.41.0"    % Test,
+    "com.dimafeng"  %% "testcontainers-scala-postgresql" % "0.41.3"    % Test,
+    "com.dimafeng"  %% "testcontainers-scala-munit"      % "0.41.3"    % Test,
     "org.scalameta" %% "munit"                           % "1.0.0-M10" % Test,
     "org.typelevel" %% "munit-cats-effect"               % "2.0.0-M3"  % Test,
   )
