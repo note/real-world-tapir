@@ -4,7 +4,7 @@ import cats.effect.IO
 import doobie.util.transactor.Transactor
 import pl.msitko.realworld.AppConfig
 import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, HealthRepo, TagRepo, UserRepo}
-import pl.msitko.realworld.endpoints.{ArticleEndpoints, HealthEndpoint, ProfileEndpoints, UserEndpoints}
+import pl.msitko.realworld.endpoints.{ArticleEndpoints, AuthLogic, HealthEndpoint, ProfileEndpoints, UserEndpoints}
 import pl.msitko.realworld.wiring.{ArticleWiring, ProfileWiring, TagWiring, UserWiring}
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics
@@ -17,17 +17,16 @@ object Services:
   def apply(transactor: Transactor[IO], appConfig: AppConfig): List[ServerEndpoint[Any, IO]] =
     val repos = Repos.fromTransactor(transactor)
 
-    val articleEndpoints     = new ArticleEndpoints(appConfig.jwt)
+    val authLogic = AuthLogic(appConfig.jwt)
+
     val articleService       = ArticleService(repos)
-    val articleEndpointsImpl = ArticleWiring.enpoints(articleEndpoints, articleService)
+    val articleEndpointsImpl = ArticleWiring(authLogic).endpoints(articleService)
 
-    val profileEndpoints     = new ProfileEndpoints(appConfig.jwt)
     val profileService       = ProfileService(repos)
-    val profileEndpointsImpl = ProfileWiring.endpoints(profileEndpoints, profileService)
+    val profileEndpointsImpl = ProfileWiring(authLogic).endpoints(profileService)
 
-    val userEndpoints     = new UserEndpoints(appConfig.jwt)
     val userService       = UserService(repos, appConfig.jwt)
-    val userEndpointsImpl = UserWiring.endpoints(userEndpoints, userService)
+    val userEndpointsImpl = UserWiring(authLogic).endpoints(userService)
 
     val tagService       = TagService(repos)
     val tagEndpointsImpl = TagWiring.endpoints(tagService)

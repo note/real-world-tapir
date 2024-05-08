@@ -29,7 +29,8 @@ object ErrorInfo:
     def fromTuple(in: (String, String)): ValidationError =
       ValidationError(Map(in._1 -> List(in._2)))
 
-class SecuredEndpoints(jwtConfig: JwtConfig):
+// TODO: move or rename?
+class AuthLogic(jwtConfig: JwtConfig):
   def authLogic(token: String): IO[Either[ErrorInfo, UserId]] =
     IO.pure {
       JWT.decodeJwtToken(token, jwtConfig) match
@@ -40,7 +41,7 @@ class SecuredEndpoints(jwtConfig: JwtConfig):
 
   def optionalAuthLogic(tokenOpt: Option[String]): IO[Either[ErrorInfo, Option[UserId]]] =
     IO.pure {
-      Right(tokenOpt.map(_.stripPrefix(expectedPrefix)).flatMap { token =>
+      Right(tokenOpt.map(_.stripPrefix(SecuredEndpoints.expectedPrefix)).flatMap { token =>
         JWT.decodeJwtToken(token, jwtConfig) match
           case Success((userId, expirationDate)) if Instant.now().isBefore(expirationDate) =>
             Some(userId)
@@ -48,9 +49,10 @@ class SecuredEndpoints(jwtConfig: JwtConfig):
       })
     }
 
+object SecuredEndpoints:
   private val msg =
     "As per https://www.realworld.how/docs/specs/backend-specs/endpoints#authentication-header Authorization is supposed to start with 'Token '"
-  private val expectedPrefix = "Token "
+  val expectedPrefix = "Token "
   val secureEndpoint = endpoint
     // As per https://www.realworld.how/docs/specs/backend-specs/endpoints#authentication-header
     .securityIn(
@@ -71,7 +73,6 @@ class SecuredEndpoints(jwtConfig: JwtConfig):
         oneOfVariant(statusCode(StatusCode.Forbidden).and(emptyOutputAs(ErrorInfo.Unauthorized))),
         oneOfVariant(statusCode(StatusCode.Unauthorized).and(emptyOutputAs(ErrorInfo.Unauthenticated))),
       ))
-    .serverSecurityLogic(authLogic)
 
   val optionallySecureEndpoint = endpoint
     // As per https://www.realworld.how/docs/specs/backend-specs/endpoints#authentication-header
@@ -82,4 +83,3 @@ class SecuredEndpoints(jwtConfig: JwtConfig):
         oneOfVariant(statusCode(StatusCode.Forbidden).and(emptyOutputAs(ErrorInfo.Unauthorized))),
         oneOfVariant(statusCode(StatusCode.Unauthorized).and(emptyOutputAs(ErrorInfo.Unauthenticated))),
       ))
-    .serverSecurityLogic(optionalAuthLogic)

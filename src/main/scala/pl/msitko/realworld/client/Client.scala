@@ -1,9 +1,9 @@
 package pl.msitko.realworld.client
 
-import pl.msitko.realworld.endpoints.{HealthEndpoint, HealthResponse, UserEndpoints}
+import pl.msitko.realworld.endpoints.{HealthEndpoint, HealthResponse}
 import sttp.client3.{HttpClientSyncBackend, Identity, Request, Response, SttpBackend, UriContext}
 import sttp.model.Uri
-import sttp.tapir.{DecodeResult, Endpoint, PublicEndpoint}
+import sttp.tapir.{DecodeResult, PublicEndpoint}
 import sttp.tapir.client.sttp.SttpClientInterpreter
 
 trait EndpointToRequest:
