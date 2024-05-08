@@ -12,4 +12,5 @@ final case class HealthResponse(
 )
 
 object HealthEndpoint:
-  val health = endpoint.get.in("api" / "health").out(jsonBody[HealthResponse]).tag("other")
+  val health: Endpoint[Unit, Unit, Unit, HealthResponse, Any] =
+    endpoint.get.in("api" / "health").out(jsonBody[HealthResponse]).tag("other")

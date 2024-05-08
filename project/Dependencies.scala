@@ -11,6 +11,7 @@ object Dependencies {
     "com.softwaremill.sttp.tapir" %% "tapir-http4s-server"      % tapirVersion,
     "com.softwaremill.sttp.tapir" %% "tapir-json-circe"         % tapirVersion,
     "com.softwaremill.sttp.tapir" %% "tapir-prometheus-metrics" % tapirVersion,
+    "com.softwaremill.sttp.tapir" %% "tapir-sttp-client"        % tapirVersion,
     "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle"  % tapirVersion,
     "org.http4s"                  %% "http4s-blaze-server"      % "0.23.16",
   )
