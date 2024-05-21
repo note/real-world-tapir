@@ -24,7 +24,7 @@ object UserEndpoints:
     .errorOut(statusCode(StatusCode.UnprocessableEntity).and(jsonBody[ErrorInfo.ValidationError]))
     .tag("users")
 
-  val getCurrentUser = SecuredEndpoints.secureEndpoint.get
+  val getCurrentUser: Endpoint[String, Unit, ErrorInfo, UserBody, Any] = SecuredEndpoints.secureEndpoint.get
     .in("api" / "user")
     .out(jsonBody[UserBody])
     .tag("users")

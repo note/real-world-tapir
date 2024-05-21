@@ -4,7 +4,7 @@ import cats.effect.IO
 import doobie.util.transactor.Transactor
 import pl.msitko.realworld.AppConfig
 import pl.msitko.realworld.db.{ArticleRepo, CommentRepo, FollowRepo, HealthRepo, TagRepo, UserRepo}
-import pl.msitko.realworld.endpoints.{ArticleEndpoints, AuthLogic, HealthEndpoint, ProfileEndpoints, UserEndpoints}
+import pl.msitko.realworld.endpoints.{AuthLogic, HealthEndpoint}
 import pl.msitko.realworld.wiring.{ArticleWiring, ProfileWiring, TagWiring, UserWiring}
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.metrics.prometheus.PrometheusMetrics

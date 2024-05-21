@@ -31,7 +31,7 @@ object ArticleEndpoints:
     .out(jsonBody[ArticleBody])
     .tag("articles")
 
-  val createArticle =
+  val createArticle: Endpoint[String, CreateArticleReqBody, ErrorInfo, ArticleBody, Any] =
     SecuredEndpoints.secureEndpoint.post
       .in("api" / "articles")
       .in(jsonBody[CreateArticleReqBody])
@@ -68,7 +68,7 @@ object ArticleEndpoints:
     .out(jsonBody[Comments])
     .tag("comments")
 
-  val deleteComment = SecuredEndpoints.secureEndpoint.delete
+  val deleteComment: Endpoint[String, (String, Int), ErrorInfo, Unit, Any] = SecuredEndpoints.secureEndpoint.delete
     .in("api" / "articles")
     .in(path[String].name("slug").description("slug of the article"))
     .in("comments")
@@ -76,7 +76,7 @@ object ArticleEndpoints:
     .out(jsonBody[Unit])
     .tag("comments")
 
-  val favoriteArticle = SecuredEndpoints.secureEndpoint.post
+  val favoriteArticle: Endpoint[String, String, ErrorInfo, ArticleBody, Any] = SecuredEndpoints.secureEndpoint.post
     .in("api" / "articles")
     .in(path[String].name("slug").description("slug of the article"))
     .in("favorite")
