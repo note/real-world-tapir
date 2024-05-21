@@ -1,19 +1,12 @@
 package pl.msitko.realworld.endpoints
 
 import cats.data.NonEmptyChain
-import io.circe.generic.auto.*
 import cats.implicits.*
-import cats.effect.IO
-import pl.msitko.realworld.db
-import pl.msitko.realworld.db.UserId
-import pl.msitko.realworld.{JWT, JwtConfig}
+import io.circe.generic.auto.*
 import sttp.model.StatusCode
 import sttp.tapir.*
 import sttp.tapir.generic.auto.*
 import sttp.tapir.json.circe.*
-
-import java.time.Instant
-import scala.util.Success
 
 // TODO: move somewhere else:
 sealed trait ErrorInfo
@@ -28,26 +21,6 @@ object ErrorInfo:
       ValidationError(errs)
     def fromTuple(in: (String, String)): ValidationError =
       ValidationError(Map(in._1 -> List(in._2)))
-
-// TODO: move or rename?
-class AuthLogic(jwtConfig: JwtConfig):
-  def authLogic(token: String): IO[Either[ErrorInfo, UserId]] =
-    IO.pure {
-      JWT.decodeJwtToken(token, jwtConfig) match
-        case Success((userId, expirationDate)) if Instant.now().isBefore(expirationDate) =>
-          Right(userId)
-        case _ => Left(ErrorInfo.Unauthenticated)
-    }
-
-  def optionalAuthLogic(tokenOpt: Option[String]): IO[Either[ErrorInfo, Option[UserId]]] =
-    IO.pure {
-      Right(tokenOpt.map(_.stripPrefix(SecuredEndpoints.expectedPrefix)).flatMap { token =>
-        JWT.decodeJwtToken(token, jwtConfig) match
-          case Success((userId, expirationDate)) if Instant.now().isBefore(expirationDate) =>
-            Some(userId)
-          case _ => None
-      })
-    }
 
 object SecuredEndpoints:
   private val msg =

@@ -2,7 +2,7 @@ package pl.msitko.realworld.wiring
 
 import cats.effect.IO
 import pl.msitko.realworld.db.{ArticleQuery, Pagination, UserId}
-import pl.msitko.realworld.endpoints.{ArticleEndpoints, AuthLogic}
+import pl.msitko.realworld.endpoints.ArticleEndpoints
 import pl.msitko.realworld.services.ArticleService
 import sttp.tapir.server.ServerEndpoint
 

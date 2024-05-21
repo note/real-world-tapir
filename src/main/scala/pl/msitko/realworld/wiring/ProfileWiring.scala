@@ -1,7 +1,7 @@
 package pl.msitko.realworld.wiring
 
 import cats.effect.IO
-import pl.msitko.realworld.endpoints.{AuthLogic, ProfileEndpoints}
+import pl.msitko.realworld.endpoints.ProfileEndpoints
 import pl.msitko.realworld.services.ProfileService
 import sttp.tapir.server.ServerEndpoint
 
