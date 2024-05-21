@@ -2,21 +2,22 @@ package pl.msitko.realworld.services
 
 import cats.data.{EitherT, NonEmptyList}
 import cats.effect.IO
-import pl.msitko.realworld.entities.{
-  AddCommentReqBody,
-  Article,
-  ArticleBody,
-  Articles,
-  Comment,
-  CommentBody,
-  Comments,
-  CreateArticleReqBody,
-  UpdateArticleReqBody
-}
 import pl.msitko.realworld.*
-import pl.msitko.realworld.db
-import pl.msitko.realworld.db.{ArticleId, ArticleRepo, CommentRepo, FollowRepo, TagId, TagRepo, UserId, UserRepo}
+import pl.msitko.realworld.db.{
+  ArticleId,
+  ArticleNoId,
+  ArticleRepo,
+  CommentNoId,
+  CommentRepo,
+  FollowRepo,
+  TagId,
+  TagRepo,
+  UpdateArticle,
+  UserId,
+  UserRepo
+}
 import pl.msitko.realworld.endpoints.ErrorInfo
+import pl.msitko.realworld.entities.*
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -40,7 +41,7 @@ class ArticleService(
           articleRepo.feed(userId, followedNel, pagination)
         case None =>
           IO.pure(List.empty[db.FullArticle])
-    } yield Articles.fromArticles(r.map(Article.fromDB))
+    } yield Articles.fromArticles(r.map(_.toHttp))
 
   def listArticles(
       subjectUserId: Option[UserId],
@@ -64,20 +65,20 @@ class ArticleService(
     resolvedQuery.flatMap { rq =>
       articleRepo
         .listArticles(rq, pagination, subjectUserId)
-        .map(articles => Articles.fromArticles(articles.map(Article.fromDB)))
+        .map(articles => Articles.fromArticles(articles.map(_.toHttp)))
     }
 
   def getArticle(userIdOpt: Option[UserId])(slug: String): Result[ArticleBody] =
-    getArticleBySlug(slug, userIdOpt).map(dbArticle => ArticleBody.fromDB(dbArticle))
+    getArticleBySlug(slug, userIdOpt).map(dbArticle => ArticleBody(dbArticle.toHttp))
 
   def createArticle(userId: UserId)(reqBody: CreateArticleReqBody): Result[ArticleBody] =
     for {
-      dbArticle <- reqBody.toDB(reqBody.article.title, Instant.now()).toResult
+      dbArticle <- ArticleNoId.fromHttp(reqBody, reqBody.article.title, Instant.now()).toResult
       tagIds    <- insertTags(dbArticle.tags)
       article   <- insertArticle(dbArticle, userId)
       articleTags = tagIds.map(tagId => db.ArticleTag(articleId = article.article.id, tagId = tagId))
       _ <- insertArticleTags(articleTags)
-    } yield ArticleBody.fromDB(article)
+    } yield ArticleBody(article.toHttp)
 
   private def insertArticle(article: db.ArticleNoId, userId: UserId): Result[db.FullArticle] =
     for {
@@ -102,8 +103,10 @@ class ArticleService(
   def updateArticle(userId: UserId)(slug: String, reqBody: UpdateArticleReqBody): Result[ArticleBody] =
     for {
       existingArticle <- getOwnedArticle(slug, userId)
-      changeObj       <- reqBody.toDB(reqBody.article.title.map(generateSlug), existingArticle.article).toResult
-      _               <- EitherT.right(articleRepo.update(changeObj, existingArticle.article.id))
+      changeObj <- UpdateArticle
+        .fromHttp(reqBody, reqBody.article.title.map(generateSlug), existingArticle.article)
+        .toResult
+      _ <- EitherT.right(articleRepo.update(changeObj, existingArticle.article.id))
       // This getArticleBodyById is a bit lazy, we could avoid another DB query by composing existing and changeObj
       fetchedArticle <- getArticleBodyById(existingArticle.article.id, userId)
     } yield fetchedArticle
@@ -117,12 +120,12 @@ class ArticleService(
   def addComment(userId: UserId)(slug: String, reqBody: AddCommentReqBody): Result[CommentBody] =
     for {
       article    <- getArticleBySlug(slug, userId)
-      comment    <- reqBody.toDB(userId, article.article.id, Instant.now).toResult
+      comment    <- CommentNoId.fromHttp(reqBody, userId, article.article.id, Instant.now).toResult
       inserted   <- EitherT.right(commentRepo.insert(comment))
       commentOpt <- EitherT.right(commentRepo.getForCommentId(inserted.id, userId))
       res <- commentOpt match
         case Some(comment) =>
-          EitherT.rightT[IO, ErrorInfo](CommentBody.fromDB(comment))
+          EitherT.rightT[IO, ErrorInfo](CommentBody(comment.toHttp))
         case None =>
           EitherT.leftT[IO, CommentBody](ErrorInfo.NotFound)
     } yield res
@@ -133,7 +136,7 @@ class ArticleService(
       comments <- EitherT.right(
         commentRepo
           .getForArticleId(article.article.id, userIdOpt)
-          .map(dbComments => Comments(dbComments.map(Comment.fromDB))))
+          .map(dbComments => Comments(dbComments.map(_.toHttp))))
     } yield comments
 
   def deleteComment(userId: UserId)(commentId: Int): Result[Unit] =
@@ -152,7 +155,7 @@ class ArticleService(
   def favoriteArticle(userId: UserId)(slug: String): Result[ArticleBody] =
     for {
       article <- getArticleBySlug(slug, userId)
-      articleBody    = ArticleBody.fromDB(article)
+      articleBody    = ArticleBody(article.toHttp)
       updatedArticle = articleBody.copy(article = articleBody.article.copy(favorited = true))
       increment <- EitherT.right(articleRepo.insertFavorite(article.article.id, userId))
       updatedArticle2 = updatedArticle.copy(article =
@@ -177,7 +180,7 @@ class ArticleService(
     })
 
   private def getArticleBodyById(articleId: ArticleId, userId: UserId): Result[ArticleBody] =
-    getArticleById(articleId, userId).map(ArticleBody.fromDB)
+    getArticleById(articleId, userId).map(dbArticle => ArticleBody(dbArticle.toHttp))
 
   private def getOwnedArticle(slug: String, userId: UserId): Result[db.FullArticle] =
     for {

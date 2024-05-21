@@ -3,6 +3,9 @@ package pl.msitko.realworld.db
 import doobie.*
 import doobie.implicits.*
 import doobie.implicits.legacy.instant.*
+import pl.msitko.realworld.entities
+import pl.msitko.realworld.{db, Validated, Validation}
+
 import java.time.Instant
 
 final case class CommentNoId(
@@ -12,6 +15,15 @@ final case class CommentNoId(
     createdAt: Instant,
     updatedAt: Instant,
 )
+object CommentNoId:
+  def fromHttp(
+      req: entities.AddCommentReqBody,
+      authorId: UserId,
+      articleId: ArticleId,
+      now: Instant): Validated[db.CommentNoId] =
+    Validation.nonEmptyString("comment.body")(req.comment.body).map { body =>
+      db.CommentNoId(authorId = authorId, articleId = articleId, body = body, createdAt = now, updatedAt = now)
+    }
 
 final case class Comment(
     id: Int,
@@ -25,7 +37,15 @@ final case class Comment(
 final case class FullComment(
     comment: Comment,
     author: Author
-)
+):
+  def toHttp: entities.Comment =
+    entities.Comment(
+      id = comment.id,
+      createdAt = comment.createdAt,
+      updatedAt = comment.createdAt,
+      body = comment.body,
+      author = author.toHttpProfile
+    )
 
 object FullComment:
   implicit val fullCommentRead: Read[FullComment] =

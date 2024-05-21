@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependencies {
-  val tapirVersion  = "1.10.4"
+  val tapirVersion  = "1.10.7"
   val doobieVersion = "1.0.0-RC5"
   // Couldn't update to 10.11.0, as I was getting errors in compile time
   val flywayVersion = "10.9.0"
@@ -13,10 +13,10 @@ object Dependencies {
     "com.softwaremill.sttp.tapir" %% "tapir-prometheus-metrics" % tapirVersion,
     "com.softwaremill.sttp.tapir" %% "tapir-sttp-client"        % tapirVersion,
     "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-bundle"  % tapirVersion,
-    "org.http4s"                  %% "http4s-blaze-server"      % "0.23.16",
+    "org.http4s"                  %% "http4s-ember-server"      % "0.23.27",
   )
   val compileDeps = tapir ++ Seq(
-    "com.github.jwt-scala"       %% "jwt-circe"                   % "10.0.0",
+    "com.github.jwt-scala"       %% "jwt-circe"                   % "10.0.1",
     "com.github.pureconfig"      %% "pureconfig-core"             % "0.17.6",
     "com.typesafe.scala-logging" %% "scala-logging"               % "3.9.5",
     "org.flywaydb"                % "flyway-core"                 % flywayVersion,

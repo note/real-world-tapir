@@ -1,8 +1,11 @@
 package pl.msitko.realworld
 
 import cats.effect.IO
+import com.comcast.ip4s.{Host, Port}
 import pureconfig.*
+import pureconfig.error.CannotConvert
 import pureconfig.generic.derivation.default.*
+
 import scala.concurrent.duration.FiniteDuration
 
 final case class AppConfig(
@@ -16,9 +19,15 @@ object AppConfig:
     IO(ConfigSource.default.loadOrThrow[AppConfig])
 
 final case class ServerConfig(
-    host: String,
-    port: Int,
+    host: Host,
+    port: Port,
 ) derives ConfigReader
+
+object ServerConfig:
+  given ConfigReader[Host] =
+    ConfigReader.fromString(s => Host.fromString(s).toRight(CannotConvert(s, "Host", "cannot convert")))
+  given ConfigReader[Port] =
+    ConfigReader.fromString(s => Port.fromString(s).toRight(CannotConvert(s, "Port", "cannot convert")))
 
 final case class DatabaseConfig(
     host: String,

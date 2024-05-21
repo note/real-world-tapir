@@ -19,13 +19,13 @@ class ProfileService(followRepo: FollowRepo, userRepo: UserRepo):
       update = db.Follow(follower = userId, followed = userIdToFollow)
       _    <- insertFollow(update)
       user <- userHelper.getById(userIdToFollow, subjectUserId = userId)
-    } yield ProfileBody.fromDB(user.toAuthor)
+    } yield user.toAuthor.toHttp
 
   def getProfile(userIdOpt: Option[UserId])(profileName: String): Result[ProfileBody] =
     for {
       requestedUserId <- resolveUserName(profileName)
       user            <- getByUserId(requestedUserId, userIdOpt)
-    } yield ProfileBody.fromDB(user.toAuthor)
+    } yield user.toAuthor.toHttp
 
   def unfollowProfile(userId: UserId)(profileName: String): Result[ProfileBody] =
     for {
@@ -33,7 +33,7 @@ class ProfileService(followRepo: FollowRepo, userRepo: UserRepo):
       update = db.Follow(follower = userId, followed = userIdToFollow)
       _    <- deleteFollow(update)
       user <- userHelper.getById(userIdToFollow, subjectUserId = userId)
-    } yield ProfileBody.fromDB(user.toAuthor)
+    } yield user.toAuthor.toHttp
 
   private def resolveUserName(username: String): Result[UserId] =
     EitherT(userRepo.resolveUsername(username).map {

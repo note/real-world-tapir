@@ -1,8 +1,13 @@
 package pl.msitko.realworld.db
 
+import cats.implicits.*
 import doobie.*
 import doobie.implicits.*
 import doobie.implicits.legacy.instant.*
+import pl.msitko.realworld.entities
+import pl.msitko.realworld.entities.{Profile, ProfileBody}
+import pl.msitko.realworld.{db, Validated, Validation}
+import sttp.model.Uri
 
 import java.time.Instant
 
@@ -15,6 +20,23 @@ final case class ArticleNoId(
     createdAt: Instant,
     updatedAt: Instant,
 )
+
+object ArticleNoId:
+  def fromHttp(req: entities.CreateArticleReqBody, slug: String, now: Instant): Validated[ArticleNoId] =
+    (
+      Validation.nonEmptyString("article.title")(req.article.title),
+      Validation.nonEmptyString("article.description")(req.article.description),
+      Validation.nonEmptyString("article.body")(req.article.body)).mapN { (title, description, body) =>
+      db.ArticleNoId(
+        slug = slug,
+        title = title,
+        description = description,
+        body = body,
+        tags = req.article.tagList,
+        createdAt = now,
+        updatedAt = now,
+      )
+    }
 
 final case class Article(
     id: ArticleId,
@@ -34,7 +56,20 @@ final case class FullArticle(
     favoritesCount: Option[Int],
     favorited: Option[Int],
     tags: List[String]
-)
+):
+  def toHttp: entities.Article =
+    entities.Article(
+      slug = Uri.unsafeParse(article.slug).toString,
+      title = article.title,
+      description = article.description,
+      body = article.body,
+      tagList = tags,
+      createdAt = article.createdAt,
+      updatedAt = article.updatedAt,
+      favorited = favorited.isDefined,
+      favoritesCount = favoritesCount.getOrElse(0),
+      author = author.toHttpProfile
+    )
 
 object FullArticle:
   implicit val fullArticleRead: Read[FullArticle] =
@@ -100,7 +135,16 @@ final case class Author(
     bio: Option[String],
     image: Option[String],
     following: Boolean,
-)
+):
+  def toHttpProfile: Profile =
+    Profile(
+      username = username,
+      bio = bio,
+      image = image,
+      following = following
+    )
+  def toHttp: ProfileBody =
+    ProfileBody(profile = toHttpProfile)
 
 final case class UpdateArticle(
     slug: String,
@@ -108,6 +152,30 @@ final case class UpdateArticle(
     description: String,
     body: String,
 )
+
+object UpdateArticle:
+  def fromHttp(
+      req: entities.UpdateArticleReqBody,
+      slug: Option[String],
+      existingArticle: db.Article): Validated[UpdateArticle] =
+    (
+      req.article.title
+        .map(newTitle => Validation.nonEmptyString("article.title")(newTitle))
+        .getOrElse(existingArticle.title.validNec),
+      req.article.description
+        .map(newDescription => Validation.nonEmptyString("article.description")(newDescription))
+        .getOrElse(existingArticle.description.validNec),
+      req.article.body
+        .map(newBody => Validation.nonEmptyString("article.body")(newBody))
+        .getOrElse(existingArticle.body.validNec)
+    ).mapN { (title, description, body) =>
+      db.UpdateArticle(
+        slug = slug.getOrElse(existingArticle.slug),
+        title = title,
+        description = description,
+        body = body,
+      )
+    }
 
 final case class UserCoordinates(username: String, id: UserId)
 

@@ -1,7 +1,9 @@
 package pl.msitko.realworld.db
 
+import cats.implicits.*
 import doobie.*
-import doobie.implicits.*
+import pl.msitko.realworld.entities
+import pl.msitko.realworld.{db, Validated, Validation}
 
 // TODO: introduce chimney-like type transformers? (as UserNoId and User are basically the same thing)
 final case class UserNoId(
@@ -17,7 +19,15 @@ final case class User(
     username: String,
     bio: Option[String],
     image: Option[String]
-)
+):
+  def toHttp(jwtToken: String): entities.UserBody =
+    entities.UserBody(user = entities.User(
+      email = email,
+      token = jwtToken,
+      username = username,
+      bio = bio,
+      image = image,
+    ))
 
 final case class UpdateUser(
     email: String,
@@ -26,6 +36,33 @@ final case class UpdateUser(
     bio: Option[String],
     image: Option[String],
 )
+
+object UpdateUser:
+  def fromHttp(req: entities.UpdateUserReqBody, existingUser: User): Validated[UpdateUser] =
+    (
+      req.user.email
+        .map(newEmail => Validation.validEmail("user.email")(newEmail))
+        .getOrElse(existingUser.email.validNec),
+      req.user.username
+        .map(newUserName => Validation.nonEmptyString("user.username")(newUserName))
+        .getOrElse(existingUser.username.validNec),
+      req.user.password
+        .map(newPassword => Validation.nonEmptyString("user.password")(newPassword))
+        .sequence,
+    ).mapN { (email, username, password) =>
+      db.UpdateUser(
+        email = email,
+        username = username,
+        password = password,
+        // TODO: Current treatment of bio and image is problematic in case of nullifying those values as part of update
+        // On the other hand specs don't tell anything explicitly about nullifying. I guess something like following
+        // would make sense:
+        // Omitting value in update request means "no change"
+        // Specifying value to be null explicitly means "change the value to null"
+        bio = req.user.bio.orElse(existingUser.bio),
+        image = req.user.image.orElse(existingUser.image)
+      )
+    }
 
 final case class FullUser(
     user: User,

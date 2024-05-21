@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.StrictLogging
 import pl.msitko.realworld.*
 import pl.msitko.realworld.entities.{AuthenticationReqBody, RegistrationReqBody, UpdateUserReqBody, UserBody}
 import pl.msitko.realworld.{db, JWT, JwtConfig, Validated}
-import pl.msitko.realworld.db.{UserId, UserRepo}
+import pl.msitko.realworld.db.{UpdateUser, UserId, UserRepo}
 import pl.msitko.realworld.endpoints.ErrorInfo
 import sttp.model.StatusCode
 
@@ -24,7 +24,7 @@ class UserService(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
       authenticated <- repo.authenticate(reqBody.user.email, encodedPassword)
       response = authenticated match
         case Some(user) =>
-          Right(UserBody.fromDB(user, JWT.generateJwtToken(user.id.toString, jwtConfig)))
+          Right(user.toHttp(JWT.generateJwtToken(user.id.toString, jwtConfig)))
         case None =>
           Left(StatusCode.Forbidden)
     } yield response
@@ -43,7 +43,7 @@ class UserService(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   def getCurrentUser(userId: UserId): IO[Either[ErrorInfo.NotFound.type, UserBody]] =
     repo.getById(userId, userId).flatMap {
       case Some(user) =>
-        IO.pure(Right(UserBody.fromDB(user.user, JWT.generateJwtToken(user.user.id.toString, jwtConfig))))
+        IO.pure(Right(user.user.toHttp(JWT.generateJwtToken(user.user.id.toString, jwtConfig))))
       case None =>
         IO.pure(Left(ErrorInfo.NotFound))
     }
@@ -51,10 +51,10 @@ class UserService(repo: UserRepo, jwtConfig: JwtConfig) extends StrictLogging:
   def updateUser(userId: UserId)(reqBody: UpdateUserReqBody): Result[UserBody] =
     for {
       existingUser <- helper.getById(userId, userId)
-      updateObj    <- reqBody.toDB(existingUser.user).toResult
+      updateObj    <- UpdateUser.fromHttp(reqBody, existingUser.user).toResult
       _            <- helper.updateUser(updateObj, userId)
       updatedUser  <- helper.getById(userId, userId)
-    } yield UserBody.fromDB(updatedUser.user, JWT.generateJwtToken(userId.toString, jwtConfig))
+    } yield updatedUser.user.toHttp(JWT.generateJwtToken(userId.toString, jwtConfig))
 
   private def validateRegistration(reqBody: RegistrationReqBody): Validated[db.UserNoId] =
     val user = reqBody.user

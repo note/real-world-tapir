@@ -10,4 +10,4 @@ object TagService:
 
 class TagService(tagRepo: TagRepo):
   def getTags: IO[Tags] =
-    tagRepo.getAllTags.map(Tags.fromDB)
+    tagRepo.getAllTags.map(Tags.apply)

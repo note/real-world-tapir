@@ -3,7 +3,7 @@ package pl.msitko.realworld
 import cats.effect.{ExitCode, IO, IOApp, Resource}
 import com.typesafe.scalalogging.StrictLogging
 import doobie.Transactor
-import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.{Router, Server}
 import pl.msitko.realworld.services.Services
 import sttp.tapir.server.ServerEndpoint
@@ -37,10 +37,12 @@ object Main extends IOApp with StrictLogging:
         logHandler = None
       )
       services = Services(transactor, appConfig)
-    } yield BlazeServerBuilder[IO]
-      .bindHttp(appConfig.server.port, appConfig.server.host)
+    } yield EmberServerBuilder
+      .default[IO]
+      .withHost(appConfig.server.host)
+      .withPort(appConfig.server.port)
       .withHttpApp(Router("/" -> routez(services)).orNotFound)
-      .resource
+      .build
 
   def run(args: List[String]): IO[ExitCode] =
     for {
