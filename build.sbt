@@ -1,6 +1,24 @@
 import Common._
 
-lazy val root = (project in file("."))
+lazy val model = (project in file("model"))
+  .commonSettings("model")
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-json-circe"         % Dependencies.tapirVersion,
+    )
+  )
+
+lazy val client = (project in file("client"))
+  .commonSettings("client")
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-sttp-client"        % Dependencies.tapirVersion,
+    )
+  )
+  .dependsOn(model)
+
+lazy val server = (project in file("server"))
+  .dependsOn(model)
   .enablePlugins(BuildInfoPlugin)
   .commonSettings("real-world-tapir")
   .settings(
